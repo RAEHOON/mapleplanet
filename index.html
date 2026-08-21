@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>메이플스토리 깡패 길드 - 유혹 타이머</title>
   <meta property="og:title" content="유혹 타이머">
-  <meta property="og:description" content="최대 5개, 60분 무한 반복 타이머 지원">
+  <meta property="og:description" content="최대 8개, 60분 무한 반복 타이머 지원">
   <style>
     /* 기본 배경 및 폰트 설정 (다크 테마) */
     body {
@@ -159,20 +159,20 @@
 <body>
 
   <h1>유혹 타이머</h1>
-  <p class="subtitle">설정한 시간이 되면 자동으로 처음으로 돌아가 무한 반복됩니다. (최대 60분)</p>
+  <p class="subtitle">깡패 길드 전용 - 설정한 시간이 되면 자동으로 처음으로 돌아가 무한 반복됩니다. (최대 60분)</p>
 
   <button class="pip-btn" onclick="togglePIP()">📺 PIP 모드 켜기 (항상 위)</button>
 
   <div class="timer-container" id="timer-container">
-    <!-- 자바스크립트로 5개의 타이머가 생성됩니다 -->
+    <!-- 자바스크립트로 8개의 타이머가 생성됩니다 -->
   </div>
 
-  <!-- PIP 렌더링용 캔버스와 비디오 -->
-  <canvas id="pip-canvas" width="300" height="350"></canvas>
+  <!-- PIP 렌더링용 캔버스와 비디오 (height를 500으로 늘려 8개 모두 보이게 수정) -->
+  <canvas id="pip-canvas" width="300" height="500"></canvas>
   <video id="pip-video" muted autoplay playsinline></video>
 
   <script>
-    const MAX_TIMERS = 8;
+    const MAX_TIMERS = 8; // 타이머 8개로 수정
     const timers = [];
 
     // 타이머 객체 초기화
@@ -318,7 +318,7 @@
       ctx.textAlign = 'center';
       ctx.fillText('유혹 타이머', canvas.width / 2, 40);
 
-      let yPos = 90;
+      let yPos = 85; // 시작 위치를 살짝 위로 조정
       timers.forEach((timer) => {
         let text = `T${timer.id} : 대기중`;
         let color = '#555555'; // 기본 대기 색상
@@ -342,7 +342,8 @@
         ctx.fillStyle = color;
         ctx.font = 'bold 20px "Malgun Gothic", monospace';
         ctx.fillText(text, canvas.width / 2, yPos);
-        yPos += 45;
+        
+        yPos += 45; // 타이머 간격 유지
       });
 
       requestAnimationFrame(drawPIP);
