@@ -3,368 +3,1270 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>메이플스토리 깡패 길드 - 유혹 타이머</title>
-  <meta property="og:title" content="유혹 타이머">
-  <meta property="og:description" content="최대 8개, 60분 무한 반복 타이머 지원">
+  <title>유혹 타이머 · 깡패 길드</title>
+  <meta name="description" content="최대 8개, 60분까지 무한 반복되는 길드 전용 타이머. 임박 경고와 알림음 지원.">
+  <meta property="og:title" content="유혹 타이머 · 깡패 길드">
+  <meta property="og:description" content="최대 8개, 60분 무한 반복 타이머. 임박하면 점멸·알림음으로 확실하게 알려줍니다.">
+  <meta name="theme-color" content="#150e26">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Do+Hyeon&family=Jua&display=swap" rel="stylesheet">
   <style>
-    /* 기본 배경 및 폰트 설정 (다크 테마) */
-    body {
-      background-color: #121212;
-      color: #e0e0e0;
-      font-family: 'Malgun Gothic', '맑은 고딕', sans-serif;
-      text-align: center;
-      margin: 0;
-      padding: 40px 20px;
+    /* ============================================================
+       디자인 토큰 — 색/간격/모양을 여기 한 곳에서만 관리합니다.
+       ============================================================ */
+    :root {
+      --bg-deep:      #100a1c;
+      --bg-mid:       #170f2b;
+      --panel:        #1d1533;
+      --panel-top:    #251b40;
+      --line:         #3a2d5c;
+      --line-soft:    #2c2246;
+
+      --ink:          #ece6ff;
+      --ink-dim:      #a498c8;
+      --ink-faint:    #6f6390;
+
+      --gold:         #ffc93c;
+      --gold-deep:    #e8a013;
+      --warn:         #ff9838;
+      --danger:       #ff4d4d;
+      --ok:           #55d98b;
+
+      --radius-lg:    18px;
+      --radius-md:    12px;
+      --radius-sm:    8px;
+
+      --shadow-panel: 0 6px 0 rgba(0,0,0,.35), 0 14px 30px rgba(0,0,0,.45);
+      --shadow-key:   0 4px 0 rgba(0,0,0,.45);
+
+      --font-display: 'Black Han Sans', 'Malgun Gothic', sans-serif;
+      --font-ui:      'Jua', 'Malgun Gothic', sans-serif;
+      --font-num:     'Do Hyeon', 'Malgun Gothic', monospace;
     }
+
+    * { box-sizing: border-box; }
+
+    html, body { height: 100%; }
+
+    body {
+      margin: 0;
+      padding: 28px 16px 64px;
+      font-family: var(--font-ui);
+      color: var(--ink);
+      background:
+        radial-gradient(1200px 600px at 50% -10%, #2a1c4d 0%, rgba(42,28,77,0) 60%),
+        radial-gradient(900px 500px at 100% 100%, #241640 0%, rgba(36,22,64,0) 55%),
+        linear-gradient(180deg, var(--bg-mid) 0%, var(--bg-deep) 100%);
+      background-attachment: fixed;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ============================================================
+       헤더
+       ============================================================ */
+    header { text-align: center; margin-bottom: 22px; }
 
     h1 {
-      color: #f1c40f;
-      font-size: 2.5em;
-      margin-bottom: 5px;
-      text-shadow: 0 0 10px rgba(241, 196, 15, 0.5);
+      font-family: var(--font-display);
+      font-size: clamp(2rem, 6vw, 3rem);
+      letter-spacing: .02em;
+      margin: 0;
+      background: linear-gradient(180deg, #fff3c4 0%, var(--gold) 45%, var(--gold-deep) 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      filter: drop-shadow(0 3px 0 rgba(0,0,0,.5)) drop-shadow(0 0 18px rgba(255,201,60,.35));
     }
 
-    p.subtitle {
-      color: #aaa;
-      font-size: 1.1em;
-      margin-bottom: 30px;
+    .subtitle {
+      color: var(--ink-dim);
+      font-size: .98rem;
+      margin: 8px 0 0;
     }
 
-    /* PIP 버튼 스타일 */
-    .pip-btn {
-      background-color: #e74c3c;
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      font-size: 1em;
-      border-radius: 5px;
-      cursor: pointer;
-      margin-bottom: 30px;
-      font-weight: bold;
-      transition: background-color 0.2s;
-    }
-
-    .pip-btn:hover {
-      background-color: #c0392b;
-    }
-
-    /* 타이머 카드 컨테이너 */
-    .timer-container {
+    /* ============================================================
+       상단 툴바 — 전체 제어
+       ============================================================ */
+    .toolbar {
       display: flex;
-      justify-content: center;
       flex-wrap: wrap;
-      gap: 20px;
-      max-width: 1200px;
+      justify-content: center;
+      gap: 8px;
+      max-width: 1180px;
+      margin: 18px auto 26px;
+    }
+
+    /* 게임 UI 느낌의 입체 버튼 (공통) */
+    .btn {
+      font-family: var(--font-ui);
+      font-size: .95rem;
+      color: var(--ink);
+      background: linear-gradient(180deg, var(--panel-top), var(--panel));
+      border: 2px solid var(--line);
+      border-radius: var(--radius-md);
+      padding: 9px 15px;
+      cursor: pointer;
+      box-shadow: var(--shadow-key);
+      transition: transform .08s, box-shadow .08s, border-color .15s, background .15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn:hover  { border-color: var(--gold); }
+    .btn:active { transform: translateY(3px); box-shadow: 0 1px 0 rgba(0,0,0,.45); }
+    .btn:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+
+    .btn.on {
+      border-color: var(--gold);
+      background: linear-gradient(180deg, #4a3a12, #2f2410);
+      color: var(--gold);
+    }
+
+    /* ============================================================
+       타이머 그리드
+       ============================================================ */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(262px, 1fr));
+      gap: 18px;
+      max-width: 1180px;
       margin: 0 auto;
     }
 
-    /* 개별 타이머 카드 */
-    .timer-card {
-      background-color: #1e1e1e;
-      border: 1px solid #333;
-      border-radius: 15px;
-      padding: 20px;
-      width: 230px;
-      transition: box-shadow 0.3s ease;
+    .card {
+      /* --base 는 사용자가 고른 고유 색(JS가 인라인으로 지정).
+         --accent 는 경고 단계에 따라 덮어써지는 실제 표시색입니다. */
+      --base: var(--gold);
+      --accent: var(--base);
+      position: relative;
+      background: linear-gradient(180deg, var(--panel-top) 0%, var(--panel) 100%);
+      border: 2px solid var(--line);
+      border-radius: var(--radius-lg);
+      padding: 14px 14px 16px;
+      box-shadow: var(--shadow-panel);
+      transition: border-color .25s, box-shadow .25s;
     }
 
-    .timer-card:hover {
-      box-shadow: 0 5px 15px rgba(241, 196, 15, 0.2);
-      border-color: #f1c40f;
+    /* 패널 상단 하이라이트 — 메이플 UI 창의 광택 느낌 */
+    .card::before {
+      content: '';
+      position: absolute;
+      inset: 2px 2px auto;
+      height: 38%;
+      border-radius: 15px 15px 0 0;
+      background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,0));
+      pointer-events: none;
     }
 
-    .timer-card h2 {
-      margin: 0 0 15px 0;
-      color: #fff;
-      font-size: 1.3em;
+    .card.running { border-color: var(--accent); }
+
+    /* ---------- 카드 헤더: 색 선택 + 이름 ---------- */
+    .card-head {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      margin-bottom: 12px;
+      position: relative;
+      z-index: 1;
     }
 
-    /* 시간 입력 영역 */
-    .input-group {
+    .swatch {
+      flex: 0 0 auto;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,.35);
+      background: var(--base);
+      cursor: pointer;
+      padding: 0;
+      box-shadow: 0 0 12px -2px var(--base);
+      transition: transform .12s;
+    }
+    .swatch:hover { transform: scale(1.12); }
+    .swatch:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+
+    .name {
+      flex: 1 1 auto;
+      min-width: 0;
+      font-family: var(--font-ui);
+      font-size: 1.05rem;
+      color: var(--ink);
+      background: transparent;
+      border: 2px solid transparent;
+      border-radius: var(--radius-sm);
+      padding: 4px 7px;
+      transition: background .15s, border-color .15s;
+    }
+    .name:hover  { background: rgba(255,255,255,.05); }
+    .name:focus  { outline: none; background: #120c22; border-color: var(--base); }
+
+    .laps {
+      flex: 0 0 auto;
+      font-size: .8rem;
+      color: var(--ink-faint);
+      font-family: var(--font-num);
+      min-width: 34px;
+      text-align: right;
+    }
+    .laps.has { color: var(--accent); }
+
+    /* ---------- 시간 표시: 자릿수 타일 ---------- */
+    .digits {
       display: flex;
       justify-content: center;
       align-items: center;
       gap: 5px;
-      margin-bottom: 15px;
+      margin-bottom: 11px;
+      position: relative;
+      z-index: 1;
     }
 
-    .input-group input {
-      width: 50px;
-      padding: 5px;
-      background-color: #333;
-      border: 1px solid #555;
-      color: white;
-      text-align: center;
-      font-size: 1.1em;
-      border-radius: 5px;
+    .d {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 47px;
+      height: 62px;
+      font-family: var(--font-num);
+      font-size: 2.5rem;
+      line-height: 1;
+      color: var(--accent);
+      background: #0e0919;
+      border: 2px solid var(--line-soft);
+      border-radius: var(--radius-sm);
+      box-shadow: inset 0 3px 0 rgba(255,255,255,.05), inset 0 -3px 8px rgba(0,0,0,.6);
+      transition: color .2s, border-color .2s, background .2s;
     }
 
-    .input-group span {
-      font-weight: bold;
-      color: #aaa;
+    .colon {
+      font-family: var(--font-num);
+      font-size: 2.1rem;
+      color: var(--ink-faint);
+      padding-bottom: 6px;
     }
 
-    /* 남은 시간 표시 */
-    .time-display {
-      font-size: 2.5em;
-      font-weight: bold;
-      color: #f1c40f;
-      margin-bottom: 15px;
-      font-family: monospace;
-      transition: color 0.3s;
+    /* 대기 상태는 눈에 덜 띄게 */
+    .card.idle .d { color: var(--ink-faint); }
+
+    /* 일시정지는 '대기'와 구분되도록 고유 색을 흐리게 남깁니다 */
+    .card.paused .d { color: var(--base); opacity: .5; }
+
+    /* ---------- EXP 바 스타일 진행바 ---------- */
+    .bar {
+      position: relative;
+      height: 15px;
+      background: #0d0818;
+      border: 2px solid var(--line-soft);
+      border-radius: 9px;
+      overflow: hidden;
+      box-shadow: inset 0 2px 5px rgba(0,0,0,.7);
+      margin-bottom: 13px;
+      z-index: 1;
     }
 
-    /* 10초 이하 점멸 애니메이션 */
-    @keyframes blink-red {
-      0% { color: #f1c40f; text-shadow: none; }
-      50% { color: #ff3333; text-shadow: 0 0 15px rgba(255, 51, 51, 0.8); }
-      100% { color: #f1c40f; text-shadow: none; }
+    .bar-fill {
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 0;
+      background: var(--accent);
+      border-radius: 6px;
+      transition: width .2s linear, background-color .3s;
+    }
+    /* 바 위쪽 광택 */
+    .bar-fill::after {
+      content: '';
+      position: absolute;
+      left: 0; right: 0; top: 0;
+      height: 45%;
+      background: linear-gradient(180deg, rgba(255,255,255,.5), rgba(255,255,255,0));
+      border-radius: 6px 6px 0 0;
     }
 
-    .time-display.warning {
-      animation: blink-red 1s infinite;
+    /* ---------- 빠른 시간 선택 칩 ---------- */
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-bottom: 11px;
+      position: relative;
+      z-index: 1;
     }
 
-    /* 컨트롤 버튼 */
-    .controls button {
-      background-color: #3498db;
-      color: white;
-      border: none;
-      padding: 8px 12px;
-      border-radius: 4px;
+    .chip {
+      flex: 1 1 auto;
+      font-family: var(--font-ui);
+      font-size: .82rem;
+      color: var(--ink-dim);
+      background: #150e28;
+      border: 2px solid var(--line-soft);
+      border-radius: var(--radius-sm);
+      padding: 6px 4px;
       cursor: pointer;
-      margin: 0 2px;
-      font-size: 0.9em;
-      font-weight: bold;
+      transition: color .15s, border-color .15s, background .15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .chip:hover { color: var(--ink); border-color: var(--base); }
+    .chip.sel   { color: #1a1206; background: var(--base); border-color: var(--base); font-weight: bold; }
+    .chip:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+
+    /* ---------- 직접 입력 ---------- */
+    .manual {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      margin-bottom: 12px;
+      position: relative;
+      z-index: 1;
     }
 
-    .controls button.stop {
-      background-color: #95a5a6;
+    .manual input {
+      width: 58px;
+      font-family: var(--font-num);
+      font-size: 1.1rem;
+      text-align: center;
+      color: var(--ink);
+      background: #0e0919;
+      border: 2px solid var(--line-soft);
+      border-radius: var(--radius-sm);
+      padding: 6px 4px;
+      transition: border-color .15s;
     }
-    
-    .controls button.reset {
-      background-color: #e67e22;
+    .manual input:focus { outline: none; border-color: var(--base); }
+    .manual label { font-size: .85rem; color: var(--ink-faint); }
+
+    /* ---------- 컨트롤 ---------- */
+    .controls {
+      display: flex;
+      gap: 7px;
+      position: relative;
+      z-index: 1;
     }
 
-    .controls button:hover {
-      opacity: 0.8;
+    .btn-main {
+      flex: 1 1 auto;
+      font-family: var(--font-ui);
+      font-size: 1.02rem;
+      color: #1a1206;
+      background: linear-gradient(180deg, #ffe07a, var(--accent));
+      border: 2px solid rgba(0,0,0,.28);
+      border-radius: var(--radius-md);
+      padding: 10px;
+      cursor: pointer;
+      box-shadow: var(--shadow-key);
+      transition: transform .08s, box-shadow .08s, filter .15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn-main:hover  { filter: brightness(1.08); }
+    .btn-main:active { transform: translateY(3px); box-shadow: 0 1px 0 rgba(0,0,0,.45); }
+    .btn-main:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+
+    .btn-reset {
+      flex: 0 0 auto;
+      width: 48px;
+      font-size: 1.1rem;
+      color: var(--ink-dim);
+      background: linear-gradient(180deg, var(--panel-top), var(--panel));
+      border: 2px solid var(--line);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      box-shadow: var(--shadow-key);
+      transition: transform .08s, box-shadow .08s, color .15s, border-color .15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn-reset:hover  { color: var(--ink); border-color: var(--warn); }
+    .btn-reset:active { transform: translateY(3px); box-shadow: 0 1px 0 rgba(0,0,0,.45); }
+    .btn-reset:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+
+    /* ============================================================
+       임박 경고 — 3단계로 강해집니다
+       ============================================================ */
+
+    /* 1단계 · 30초 이하: 색이 주황으로 바뀝니다 */
+    .card.warn { --accent: var(--warn); }
+
+    /* 2단계 · 10초 이하: 빨강 + 숫자 점멸 + 카드 테두리 맥동 */
+    .card.danger { --accent: var(--danger); }
+
+    .card.danger .d {
+      animation: digit-blink .5s steps(1, end) infinite;
+    }
+    @keyframes digit-blink {
+      0%,  49% { color: var(--danger); background: #0e0919;  border-color: var(--danger); }
+      50%,100% { color: #fff;          background: var(--danger); border-color: #ffb3b3; }
     }
 
-    /* 숨김 요소 (PIP를 위한 캔버스 및 비디오) */
-    #pip-canvas, #pip-video {
-      display: none;
+    .card.danger {
+      animation: card-alarm .5s ease-in-out infinite;
+    }
+    @keyframes card-alarm {
+      0%,100% { border-color: var(--danger); box-shadow: var(--shadow-panel), 0 0 16px rgba(255,77,77,.45); }
+      50%     { border-color: #ffb3b3;       box-shadow: var(--shadow-panel), 0 0 38px rgba(255,77,77,.95); }
+    }
+
+    /* 3단계 · 5초 이하: 카드가 흔들립니다 */
+    .card.critical .digits { animation: shake .38s ease-in-out infinite; }
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      25%     { transform: translateX(-4px); }
+      75%     { transform: translateX(4px); }
+    }
+
+    /* 완료 순간 · 카드가 한 번 크게 튑니다 */
+    .card.done { animation: done-pop .6s ease-out; }
+    @keyframes done-pop {
+      0%   { transform: scale(1);    box-shadow: var(--shadow-panel), 0 0 0 rgba(255,255,255,.9); }
+      25%  { transform: scale(1.07); box-shadow: var(--shadow-panel), 0 0 60px rgba(255,255,255,.9); }
+      100% { transform: scale(1);    box-shadow: var(--shadow-panel), 0 0 0 rgba(255,255,255,0); }
+    }
+
+    /* 완료 순간 · 화면 전체 플래시 */
+    #flash {
+      position: fixed;
+      inset: 0;
+      z-index: 900;
+      pointer-events: none;
+      opacity: 0;
+      background: #fff;
+    }
+    #flash.on { animation: flash .6s ease-out; }
+    @keyframes flash {
+      0%   { opacity: 0; }
+      12%  { opacity: .6; }
+      100% { opacity: 0; }
+    }
+
+    /* ============================================================
+       완료 알림 토스트
+       ============================================================ */
+    #toasts {
+      position: fixed;
+      top: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 950;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      align-items: center;
+      pointer-events: none;
+      width: min(92vw, 420px);
+    }
+
+    .toast {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      font-size: 1rem;
+      color: #1a1206;
+      background: linear-gradient(180deg, #ffe07a, var(--accent, #ffc93c));
+      border: 2px solid rgba(0,0,0,.3);
+      border-radius: var(--radius-md);
+      padding: 11px 15px;
+      box-shadow: 0 8px 26px rgba(0,0,0,.6);
+      animation: toast-in .3s ease-out, toast-out .4s ease-in 3.4s forwards;
+    }
+    .toast b { font-family: var(--font-display); }
+    @keyframes toast-in  { from { opacity: 0; transform: translateY(-18px); } }
+    @keyframes toast-out { to   { opacity: 0; transform: translateY(-18px); } }
+
+    /* ============================================================
+       PIP 렌더링용 (화면에는 보이지 않음)
+       ============================================================ */
+    #pip-canvas, #pip-video { position: fixed; left: -9999px; top: -9999px; }
+
+    footer {
+      text-align: center;
+      color: var(--ink-faint);
+      font-size: .8rem;
+      margin-top: 44px;
+      line-height: 1.7;
+    }
+
+    /* ============================================================
+       모바일
+       ============================================================ */
+    @media (max-width: 520px) {
+      body { padding: 20px 12px 48px; }
+      .grid { gap: 14px; }
+      .d { width: 42px; height: 56px; font-size: 2.2rem; }
+    }
+
+    /* 애니메이션을 줄이도록 설정한 사용자 배려 */
+    @media (prefers-reduced-motion: reduce) {
+      .card.danger,
+      .card.danger .d,
+      .card.critical .digits,
+      .card.done,
+      #flash.on { animation: none !important; }
+      .card.danger .d { color: #fff; background: var(--danger); border-color: #ffb3b3; }
     }
   </style>
 </head>
 <body>
 
-  <h1>유혹 타이머</h1>
-  <p class="subtitle">깡패 길드 전용 - 설정한 시간이 되면 자동으로 처음으로 돌아가 무한 반복됩니다. (최대 60분)</p>
+  <div id="flash"></div>
+  <div id="toasts"></div>
 
-  <button class="pip-btn" onclick="togglePIP()">📺 PIP 모드 켜기 (항상 위)</button>
+  <header>
+    <h1>유혹 타이머</h1>
+    <p class="subtitle">깡패 길드 전용 · 시간이 끝나면 자동으로 다시 돌아 무한 반복됩니다 (최대 60분)</p>
+  </header>
 
-  <div class="timer-container" id="timer-container">
-    <!-- 자바스크립트로 8개의 타이머가 생성됩니다 -->
+  <div class="toolbar">
+    <button class="btn" id="start-all">▶ 전체 시작</button>
+    <button class="btn" id="stop-all">⏸ 전체 정지</button>
+    <button class="btn" id="reset-all">↺ 전체 리셋</button>
+    <button class="btn on" id="sound-btn" aria-pressed="true">🔊 소리 켜짐</button>
+    <button class="btn" id="notify-btn">🔔 알림 켜기</button>
+    <button class="btn" id="pip-btn">📺 PIP (항상 위)</button>
   </div>
 
-  <!-- PIP 렌더링용 캔버스와 비디오 (height를 500으로 늘려 8개 모두 보이게 수정) -->
-  <canvas id="pip-canvas" width="300" height="500"></canvas>
+  <main class="grid" id="grid"></main>
+
+  <canvas id="pip-canvas" width="330" height="600"></canvas>
   <video id="pip-video" muted autoplay playsinline></video>
 
-  <script>
-    const MAX_TIMERS = 8; // 타이머 8개로 수정
-    const timers = [];
+  <footer>
+    설정한 시간은 이 브라우저에 저장되어 새로고침해도 유지됩니다.<br>
+    이 페이지는 넥슨코리아와 무관한 비공식 팬 페이지입니다.
+  </footer>
 
-    // 타이머 객체 초기화
+  <script>
+  (function () {
+    'use strict';
+
+    /* ==========================================================
+       설정
+       ========================================================== */
+    const MAX_TIMERS = 8;
+    const MAX_SECONDS = 3600;          // 60분
+    const WARN_AT = 30;                // 주의 시작 (초)
+    const DANGER_AT = 10;              // 경고 시작 (초)
+    const CRITICAL_AT = 5;             // 최고 경고 시작 (초)
+    const STORE_KEY = 'yuhok-timers-v2';
+
+    // 카드 색상 — 스와치를 누르면 순서대로 바뀝니다.
+    const PALETTE = ['#ffc93c', '#ff8a3d', '#ff6b8a', '#c58cff', '#5ec8ff', '#55d98b'];
+
+    // 빠른 선택 칩 (라벨, 초)
+    const PRESETS = [
+      { label: '30초', sec: 30 },
+      { label: '1분',  sec: 60 },
+      { label: '2분',  sec: 120 },
+      { label: '3분',  sec: 180 },
+      { label: '5분',  sec: 300 }
+    ];
+
+    /* ==========================================================
+       상태
+       ========================================================== */
+    // total    : 설정된 총 시간(초)
+    // endsAt   : 작동 중일 때 종료 시각(ms). 정지 중이면 null
+    // paused   : 일시정지 시점의 남은 초. 작동/대기 중이면 null
+    // laps     : 반복 횟수
+    const timers = [];
     for (let i = 0; i < MAX_TIMERS; i++) {
       timers.push({
         id: i + 1,
-        interval: null,
-        totalSeconds: 0,
-        remainingSeconds: 0,
-        isRunning: false
+        name: '타이머 ' + (i + 1),
+        color: PALETTE[i % PALETTE.length],
+        total: 60,
+        endsAt: null,
+        paused: null,
+        running: false,
+        laps: 0,
+        lastShown: null   // 초 단위 변화 감지용 (틱 소리 중복 방지)
       });
     }
 
-    // 화면에 타이머 UI 생성
-    const container = document.getElementById('timer-container');
-    timers.forEach((timer, index) => {
-      const card = document.createElement('div');
-      card.className = 'timer-card';
-      card.innerHTML = `
-        <h2>타이머 ${timer.id}</h2>
-        <div class="input-group">
-          <input type="number" id="min-${timer.id}" min="0" max="60" value="1" placeholder="분"> <span>분</span>
-          <input type="number" id="sec-${timer.id}" min="0" max="59" value="0" placeholder="초"> <span>초</span>
-        </div>
-        <div class="time-display" id="display-${timer.id}">00:00</div>
-        <div class="controls">
-          <button onclick="startTimer(${timer.id})">시작</button>
-          <button class="stop" onclick="stopTimer(${timer.id})">정지</button>
-          <button class="reset" onclick="resetTimer(${timer.id})">리셋</button>
-        </div>
-      `;
-      container.appendChild(card);
+    const el = {
+      grid: document.getElementById('grid'),
+      flash: document.getElementById('flash'),
+      toasts: document.getElementById('toasts'),
+      soundBtn: document.getElementById('sound-btn'),
+      notifyBtn: document.getElementById('notify-btn'),
+      pipBtn: document.getElementById('pip-btn'),
+      canvas: document.getElementById('pip-canvas'),
+      video: document.getElementById('pip-video')
+    };
+
+    let soundOn = true;
+    let notifyOn = false;
+    let wakeLock = null;
+
+    /* ==========================================================
+       저장 / 복원
+       ========================================================== */
+    function save() {
+      try {
+        localStorage.setItem(STORE_KEY, JSON.stringify({
+          soundOn: soundOn,
+          timers: timers.map(function (t) {
+            return {
+              name: t.name, color: t.color, total: t.total,
+              endsAt: t.endsAt, paused: t.paused, running: t.running, laps: t.laps
+            };
+          })
+        }));
+      } catch (e) { /* 저장 불가 환경은 무시 */ }
+    }
+
+    function restore() {
+      let raw;
+      try { raw = localStorage.getItem(STORE_KEY); } catch (e) { return; }
+      if (!raw) return;
+
+      let data;
+      try { data = JSON.parse(raw); } catch (e) { return; }
+      if (!data || !Array.isArray(data.timers)) return;
+
+      if (typeof data.soundOn === 'boolean') soundOn = data.soundOn;
+
+      data.timers.forEach(function (s, i) {
+        const t = timers[i];
+        if (!t || !s) return;
+        if (typeof s.name === 'string') t.name = s.name;
+        if (typeof s.color === 'string') t.color = s.color;
+        if (typeof s.total === 'number') t.total = clampSeconds(s.total);
+        if (typeof s.laps === 'number') t.laps = s.laps;
+        if (typeof s.paused === 'number') t.paused = s.paused;
+
+        // 작동 중이었다면 종료 시각을 그대로 살려서 이어서 카운트합니다.
+        if (s.running && typeof s.endsAt === 'number' && t.total > 0) {
+          t.endsAt = s.endsAt;
+          t.running = true;
+        }
+      });
+    }
+
+    /* ==========================================================
+       유틸
+       ========================================================== */
+    function clampSeconds(v) {
+      v = Math.floor(Number(v) || 0);
+      if (v < 0) v = 0;
+      if (v > MAX_SECONDS) v = MAX_SECONDS;
+      return v;
+    }
+
+    function remainingOf(t) {
+      if (t.running) return Math.max(0, Math.ceil((t.endsAt - Date.now()) / 1000));
+      if (t.paused !== null) return t.paused;
+      return t.total;
+    }
+
+    function pad2(n) { return n < 10 ? '0' + n : String(n); }
+
+    function splitTime(sec) {
+      return { m: pad2(Math.floor(sec / 60)), s: pad2(sec % 60) };
+    }
+
+    function levelOf(t, remain) {
+      if (!t.running) return 'idle';
+      if (remain <= CRITICAL_AT) return 'critical';
+      if (remain <= DANGER_AT) return 'danger';
+      if (remain <= WARN_AT) return 'warn';
+      return 'running';
+    }
+
+    /* ==========================================================
+       소리 — 외부 파일 없이 Web Audio로 직접 만듭니다.
+       ========================================================== */
+    let audioCtx = null;
+
+    function ensureAudio() {
+      if (!audioCtx) {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return null;
+        audioCtx = new AC();
+      }
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      return audioCtx;
+    }
+
+    function tone(freq, dur, delay, type, vol) {
+      const ctx = ensureAudio();
+      if (!ctx) return;
+      const at = ctx.currentTime + (delay || 0);
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = type || 'square';
+      osc.frequency.setValueAtTime(freq, at);
+      // 클릭음이 나지 않도록 부드럽게 열고 닫습니다.
+      gain.gain.setValueAtTime(0.0001, at);
+      gain.gain.exponentialRampToValueAtTime(vol || 0.12, at + 0.012);
+      gain.gain.exponentialRampToValueAtTime(0.0001, at + dur);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(at);
+      osc.stop(at + dur + 0.03);
+    }
+
+    // 남은 10초부터 매초 울리는 짧은 초읽기 신호
+    function playTick() {
+      if (!soundOn) return;
+      tone(1180, 0.06, 0, 'square', 0.07);
+    }
+
+    // 완료 알람 — 빠른 4연타 후 낮게 울리는 마무리음
+    function playAlarm() {
+      if (!soundOn) return;
+      for (let i = 0; i < 4; i++) tone(1568, 0.11, i * 0.16, 'square', 0.16);
+      tone(784, 0.5, 0.72, 'triangle', 0.16);
+    }
+
+    /* ==========================================================
+       완료 처리 — 플래시 + 알람 + 토스트 + 브라우저 알림
+       ========================================================== */
+    function onComplete(t) {
+      playAlarm();
+
+      // 화면 전체 플래시 (해당 타이머 색으로)
+      el.flash.style.background = t.color;
+      el.flash.classList.remove('on');
+      void el.flash.offsetWidth;   // 애니메이션 재시작을 위한 리플로우
+      el.flash.classList.add('on');
+
+      // 카드 튀는 효과.
+      // 끝나면 반드시 클래스를 떼야 합니다. 남아 있으면 .card.done 의 animation 이
+      // .card.danger 의 테두리 맥동을 계속 덮어써서 이후 경고가 죽습니다.
+      const card = t.dom && t.dom.card;
+      if (card) {
+        card.classList.remove('done');
+        void card.offsetWidth;
+        card.classList.add('done');
+        clearTimeout(t.doneTimer);
+        t.doneTimer = setTimeout(function () { card.classList.remove('done'); }, 650);
+      }
+
+      showToast(t);
+
+      if (notifyOn && 'Notification' in window && Notification.permission === 'granted') {
+        try {
+          new Notification('⏰ ' + t.name + ' 완료!', {
+            body: '다시 처음부터 반복합니다. (' + t.laps + '회째)',
+            tag: 'yuhok-' + t.id,
+            renotify: true
+          });
+        } catch (e) { /* 일부 브라우저는 생성자 알림을 막습니다 */ }
+      }
+    }
+
+    function showToast(t) {
+      const div = document.createElement('div');
+      div.className = 'toast';
+      div.style.setProperty('--accent', t.color);
+      div.innerHTML = '<span>⏰</span><span><b>' + escapeHtml(t.name) + '</b> 시간이 끝났습니다 · ' + t.laps + '회째</span>';
+      el.toasts.appendChild(div);
+      setTimeout(function () { div.remove(); }, 4200);
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+      });
+    }
+
+    /* ==========================================================
+       타이머 조작
+       ========================================================== */
+    function start(t) {
+      if (t.running) return;
+      const from = (t.paused !== null && t.paused > 0) ? t.paused : t.total;
+      if (from <= 0) return;                 // 0초짜리는 시작하지 않습니다
+      t.endsAt = Date.now() + from * 1000;
+      t.paused = null;
+      t.running = true;
+      t.lastShown = null;
+      ensureAudio();                         // 첫 조작에서 소리 사용 권한을 확보합니다
+      requestWakeLock();
+      save();
+      renderAll();
+    }
+
+    function pause(t) {
+      if (!t.running) return;
+      t.paused = remainingOf(t);
+      t.running = false;
+      t.endsAt = null;
+      save();
+      renderAll();
+    }
+
+    function reset(t) {
+      t.running = false;
+      t.endsAt = null;
+      t.paused = null;
+      t.laps = 0;
+      t.lastShown = null;
+      clearTimeout(t.doneTimer);
+      if (t.dom) t.dom.card.classList.remove('done');
+      save();
+      renderAll();
+    }
+
+    function setTotal(t, sec) {
+      t.total = clampSeconds(sec);
+      if (t.running) {
+        // 작동 중에 시간을 바꾸면 즉시 새 시간으로 다시 셉니다.
+        // (다음 바퀴까지 기다리게 하면 눌러도 반응이 없는 것처럼 보입니다)
+        t.endsAt = t.total > 0 ? Date.now() + t.total * 1000 : null;
+        if (t.total <= 0) { t.running = false; }
+        t.lastShown = null;
+      } else {
+        // 대기 중이면 새 설정값이 바로 보이도록 일시정지 상태를 비웁니다.
+        t.paused = null;
+      }
+      save();
+      renderAll();
+    }
+
+    /* ==========================================================
+       카드 생성
+       ========================================================== */
+    function buildCard(t) {
+      const card = document.createElement('section');
+      card.className = 'card idle';
+      card.style.setProperty('--base', t.color);
+
+      /* --- 헤더 --- */
+      const head = document.createElement('div');
+      head.className = 'card-head';
+
+      const swatch = document.createElement('button');
+      swatch.className = 'swatch';
+      swatch.type = 'button';
+      swatch.title = '색 바꾸기';
+      swatch.setAttribute('aria-label', t.name + ' 색 바꾸기');
+      swatch.addEventListener('click', function () {
+        const next = (PALETTE.indexOf(t.color) + 1) % PALETTE.length;
+        t.color = PALETTE[next];
+        card.style.setProperty('--base', t.color);
+        save();
+      });
+
+      const name = document.createElement('input');
+      name.className = 'name';
+      name.type = 'text';
+      name.value = t.name;
+      name.maxLength = 14;
+      name.setAttribute('aria-label', '타이머 이름');
+      name.addEventListener('input', function () {
+        t.name = name.value || '타이머 ' + t.id;
+        save();
+      });
+
+      const laps = document.createElement('span');
+      laps.className = 'laps';
+
+      head.append(swatch, name, laps);
+
+      /* --- 시간 표시 (자릿수 타일) --- */
+      const digits = document.createElement('div');
+      digits.className = 'digits';
+      digits.setAttribute('role', 'timer');
+      digits.setAttribute('aria-live', 'off');
+
+      const dm1 = mkDigit(), dm2 = mkDigit();
+      const colon = document.createElement('span');
+      colon.className = 'colon';
+      colon.textContent = ':';
+      const ds1 = mkDigit(), ds2 = mkDigit();
+      digits.append(dm1, dm2, colon, ds1, ds2);
+
+      /* --- 진행바 --- */
+      const bar = document.createElement('div');
+      bar.className = 'bar';
+      const fill = document.createElement('div');
+      fill.className = 'bar-fill';
+      bar.appendChild(fill);
+
+      /* --- 빠른 선택 칩 --- */
+      const chips = document.createElement('div');
+      chips.className = 'chips';
+      const chipEls = PRESETS.map(function (p) {
+        const c = document.createElement('button');
+        c.className = 'chip';
+        c.type = 'button';
+        c.textContent = p.label;
+        c.dataset.sec = p.sec;
+        c.addEventListener('click', function () { setTotal(t, p.sec); });
+        chips.appendChild(c);
+        return c;
+      });
+
+      /* --- 직접 입력 --- */
+      const manual = document.createElement('div');
+      manual.className = 'manual';
+
+      const min = document.createElement('input');
+      min.type = 'number'; min.min = 0; min.max = 60; min.inputMode = 'numeric';
+      min.setAttribute('aria-label', '분');
+      const minLabel = document.createElement('label'); minLabel.textContent = '분';
+
+      const sec = document.createElement('input');
+      sec.type = 'number'; sec.min = 0; sec.max = 59; sec.inputMode = 'numeric';
+      sec.setAttribute('aria-label', '초');
+      const secLabel = document.createElement('label'); secLabel.textContent = '초';
+
+      function readManual() {
+        const m = Math.max(0, Math.floor(Number(min.value) || 0));
+        const s = Math.max(0, Math.floor(Number(sec.value) || 0));
+        setTotal(t, m * 60 + s);
+      }
+      min.addEventListener('change', readManual);
+      sec.addEventListener('change', readManual);
+
+      manual.append(min, minLabel, sec, secLabel);
+
+      /* --- 컨트롤 --- */
+      const controls = document.createElement('div');
+      controls.className = 'controls';
+
+      const mainBtn = document.createElement('button');
+      mainBtn.className = 'btn-main';
+      mainBtn.type = 'button';
+      mainBtn.addEventListener('click', function () {
+        if (t.running) pause(t); else start(t);
+      });
+
+      const resetBtn = document.createElement('button');
+      resetBtn.className = 'btn-reset';
+      resetBtn.type = 'button';
+      resetBtn.textContent = '↺';
+      resetBtn.title = '리셋';
+      resetBtn.setAttribute('aria-label', t.name + ' 리셋');
+      resetBtn.addEventListener('click', function () { reset(t); });
+
+      controls.append(mainBtn, resetBtn);
+
+      card.append(head, digits, bar, chips, manual, controls);
+
+      t.dom = {
+        card: card, name: name, laps: laps,
+        dm1: dm1, dm2: dm2, ds1: ds1, ds2: ds2,
+        fill: fill, chips: chipEls, min: min, sec: sec, mainBtn: mainBtn
+      };
+      return card;
+    }
+
+    function mkDigit() {
+      const d = document.createElement('span');
+      d.className = 'd';
+      d.textContent = '0';
+      return d;
+    }
+
+    /* ==========================================================
+       화면 갱신
+       ========================================================== */
+    function renderAll() {
+      let soonest = null;
+      let soonestName = '';
+
+      timers.forEach(function (t) {
+        const remain = remainingOf(t);
+        const dom = t.dom;
+        const parts = splitTime(remain);
+
+        // 숫자
+        if (dom.dm1.textContent !== parts.m[0]) dom.dm1.textContent = parts.m[0];
+        if (dom.dm2.textContent !== parts.m[1]) dom.dm2.textContent = parts.m[1];
+        if (dom.ds1.textContent !== parts.s[0]) dom.ds1.textContent = parts.s[0];
+        if (dom.ds2.textContent !== parts.s[1]) dom.ds2.textContent = parts.s[1];
+
+        // 진행바
+        const pct = t.total > 0 ? (remain / t.total) * 100 : 0;
+        dom.fill.style.width = pct + '%';
+
+        // 상태 클래스
+        const level = levelOf(t, remain);
+        dom.card.classList.toggle('idle', !t.running);
+        dom.card.classList.toggle('paused', !t.running && t.paused !== null);
+        dom.card.classList.toggle('running', t.running);
+        dom.card.classList.toggle('warn', level === 'warn');
+        dom.card.classList.toggle('danger', level === 'danger' || level === 'critical');
+        dom.card.classList.toggle('critical', level === 'critical');
+
+        // 버튼 문구
+        const wantLabel = t.running ? '⏸ 일시정지'
+                        : (t.paused !== null && t.paused > 0 ? '▶ 이어서 시작' : '▶ 시작');
+        if (dom.mainBtn.textContent !== wantLabel) dom.mainBtn.textContent = wantLabel;
+
+        // 반복 횟수
+        const lapText = t.laps > 0 ? t.laps + '회' : '';
+        if (dom.laps.textContent !== lapText) dom.laps.textContent = lapText;
+        dom.laps.classList.toggle('has', t.laps > 0);
+
+        // 직접 입력칸 (입력 중에는 건드리지 않습니다)
+        const mv = String(Math.floor(t.total / 60));
+        const sv = String(t.total % 60);
+        if (document.activeElement !== dom.min && dom.min.value !== mv) dom.min.value = mv;
+        if (document.activeElement !== dom.sec && dom.sec.value !== sv) dom.sec.value = sv;
+
+        // 선택된 칩 표시
+        dom.chips.forEach(function (c) {
+          c.classList.toggle('sel', Number(c.dataset.sec) === t.total);
+        });
+
+        // 초읽기 소리 (매초 한 번만)
+        if (t.running && remain <= DANGER_AT && remain > 0 && t.lastShown !== remain) {
+          playTick();
+        }
+        if (t.running) t.lastShown = remain;
+
+        // 탭 제목에 쓸 가장 임박한 타이머 찾기
+        if (t.running && (soonest === null || remain < soonest)) {
+          soonest = remain;
+          soonestName = t.name;
+        }
+      });
+
+      // 탭 제목 — 다른 탭을 보고 있어도 남은 시간이 보입니다.
+      let wantTitle;
+      if (soonest !== null) {
+        const p = splitTime(soonest);
+        wantTitle = p.m + ':' + p.s + ' · ' + soonestName + ' | 유혹 타이머';
+      } else {
+        wantTitle = '유혹 타이머 · 깡패 길드';
+      }
+      if (document.title !== wantTitle) document.title = wantTitle;
+    }
+
+    /* ==========================================================
+       메인 루프
+       ========================================================== */
+    function loop() {
+      const now = Date.now();
+
+      timers.forEach(function (t) {
+        if (!t.running || t.total <= 0) return;
+
+        if (now >= t.endsAt) {
+          // 탭이 오래 비활성이었다면 여러 바퀴가 밀려 있을 수 있습니다.
+          let rounds = 0;
+          while (now >= t.endsAt && rounds < 1000) {
+            t.endsAt += t.total * 1000;
+            rounds++;
+          }
+          t.laps += rounds;
+          t.lastShown = null;
+          onComplete(t);
+          save();
+        }
+      });
+
+      renderAll();
+    }
+
+    /* ==========================================================
+       화면 꺼짐 방지 (모바일에서 유용)
+       ========================================================== */
+    function requestWakeLock() {
+      if (wakeLock || !('wakeLock' in navigator)) return;
+      navigator.wakeLock.request('screen').then(function (lock) {
+        wakeLock = lock;
+        lock.addEventListener('release', function () { wakeLock = null; });
+      }).catch(function () { /* 지원하지 않으면 조용히 넘어갑니다 */ });
+    }
+
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'visible') {
+        if (timers.some(function (t) { return t.running; })) requestWakeLock();
+        loop();   // 탭으로 돌아왔을 때 즉시 최신 상태로 맞춥니다
+      }
     });
 
-    // 시간 포맷팅 (MM:SS)
-    function formatTime(totalSecs) {
-      const m = Math.floor(totalSecs / 60).toString().padStart(2, '0');
-      const s = (totalSecs % 60).toString().padStart(2, '0');
-      return `${m}:${s}`;
+    /* ==========================================================
+       PIP — 캔버스를 영상으로 만들어 항상 위에 띄웁니다.
+       ========================================================== */
+    const ctx = el.canvas.getContext('2d');
+    let pipStream = null;
+    let pipDrawing = false;   // PIP를 켰을 때만 그립니다 (평소엔 배터리 낭비)
+
+    function startPipLoop() {
+      if (pipDrawing) return;
+      pipDrawing = true;
+      drawPIP();
     }
 
-    // 화면 업데이트 및 10초 점멸 효과 처리
-    function updateDisplay(id) {
-      const timer = timers[id - 1];
-      const display = document.getElementById(`display-${id}`);
-      display.innerText = formatTime(timer.remainingSeconds);
-
-      // 타이머가 작동 중이고 남은 시간이 10초 이하일 때 warning 클래스 추가
-      if (timer.isRunning && timer.remainingSeconds <= 10 && timer.remainingSeconds > 0) {
-        display.classList.add('warning');
-      } else {
-        display.classList.remove('warning');
-      }
-    }
-
-    // 타이머 시작
-    function startTimer(id) {
-      const timer = timers[id - 1];
-      if (timer.isRunning) return;
-
-      const minInput = parseInt(document.getElementById(`min-${id}`).value) || 0;
-      const secInput = parseInt(document.getElementById(`sec-${id}`).value) || 0;
-      
-      let total = (minInput * 60) + secInput;
-      
-      // 최대 60분(3600초) 제한
-      if (total > 3600) {
-        total = 3600;
-        document.getElementById(`min-${id}`).value = 60;
-        document.getElementById(`sec-${id}`).value = 0;
-      }
-      
-      if (total <= 0) return;
-
-      // 새로 시작하는 경우에만 초기 시간 세팅
-      if (timer.remainingSeconds === 0 || !timer.interval) {
-        timer.totalSeconds = total;
-        timer.remainingSeconds = total;
-      }
-
-      timer.isRunning = true;
-      updateDisplay(id);
-
-      timer.interval = setInterval(() => {
-        timer.remainingSeconds--;
-        
-        // 시간이 0 미만이 되면 무한 반복 (초기 설정 시간으로 리셋)
-        if (timer.remainingSeconds < 0) {
-          timer.remainingSeconds = timer.totalSeconds;
-        }
-        updateDisplay(id);
-      }, 1000);
-    }
-
-    // 타이머 정지
-    function stopTimer(id) {
-      const timer = timers[id - 1];
-      timer.isRunning = false;
-      clearInterval(timer.interval);
-      timer.interval = null;
-      updateDisplay(id); // 정지 시 깜빡임 제거를 위해 업데이트
-    }
-
-    // 타이머 리셋
-    function resetTimer(id) {
-      const timer = timers[id - 1];
-      
-      // 타이머 정지
-      timer.isRunning = false;
-      clearInterval(timer.interval);
-      timer.interval = null;
-
-      // 입력된 시간을 가져와서 해당 시간으로 되돌림
-      const minInput = parseInt(document.getElementById(`min-${id}`).value) || 0;
-      const secInput = parseInt(document.getElementById(`sec-${id}`).value) || 0;
-      let total = (minInput * 60) + secInput;
-      if (total > 3600) total = 3600;
-
-      timer.totalSeconds = total;
-      timer.remainingSeconds = total;
-
-      updateDisplay(id); // 텍스트 갱신 및 깜빡임 제거
-    }
-
-    /* ---------------- PIP 기능 (Canvas & Video Stream) ---------------- */
-    const canvas = document.getElementById('pip-canvas');
-    const ctx = canvas.getContext('2d');
-    const video = document.getElementById('pip-video');
-    
-    // 캔버스에 비디오 스트림 연결
-    const stream = canvas.captureStream(30); 
-    video.srcObject = stream;
-
-    // 캔버스 그리기 루프 (PIP 화면용)
     function drawPIP() {
-      // 배경 그리기
-      ctx.fillStyle = '#121212';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      
-      // 상단 제목
-      ctx.fillStyle = '#f1c40f';
-      ctx.font = 'bold 24px "Malgun Gothic"';
+      if (!pipDrawing) return;
+      const W = el.canvas.width, H = el.canvas.height;
+
+      ctx.fillStyle = '#100a1c';
+      ctx.fillRect(0, 0, W, H);
+
       ctx.textAlign = 'center';
-      ctx.fillText('유혹 타이머', canvas.width / 2, 40);
+      ctx.fillStyle = '#ffc93c';
+      ctx.font = 'bold 26px "Black Han Sans", "Malgun Gothic", sans-serif';
+      ctx.fillText('유혹 타이머', W / 2, 34);
 
-      let yPos = 85; // 시작 위치를 살짝 위로 조정
-      timers.forEach((timer) => {
-        let text = `T${timer.id} : 대기중`;
-        let color = '#555555'; // 기본 대기 색상
+      let y = 62;
+      const rowH = 66;
 
-        if (timer.isRunning) {
-          text = `T${timer.id} : ${formatTime(timer.remainingSeconds)}`;
-          
-          // PIP에서도 10초 이하면 0.5초 간격으로 빨간색 점멸 효과
-          if (timer.remainingSeconds <= 10 && timer.remainingSeconds > 0) {
-            const blink = Math.floor(Date.now() / 500) % 2 === 0;
-            color = blink ? '#ff3333' : '#f1c40f';
-          } else {
-            color = '#ffffff'; // 정상 작동 중 색상
-          }
-        } else if (timer.remainingSeconds > 0) {
-          // 일시정지 상태일 때
-          text = `T${timer.id} : ${formatTime(timer.remainingSeconds)}`;
-          color = '#aaaaaa';
+      timers.forEach(function (t) {
+        const remain = remainingOf(t);
+        const level = levelOf(t, remain);
+        const p = splitTime(remain);
+
+        // 경고 상태면 행 배경을 깔아 눈에 띄게 합니다.
+        if (level === 'danger' || level === 'critical') {
+          const blink = Math.floor(Date.now() / 250) % 2 === 0;
+          ctx.fillStyle = blink ? 'rgba(255,77,77,.85)' : 'rgba(255,77,77,.25)';
+          ctx.fillRect(8, y - 4, W - 16, rowH - 10);
         }
 
+        let color;
+        if (!t.running) color = '#5a5078';
+        else if (level === 'critical' || level === 'danger') color = '#ffffff';
+        else if (level === 'warn') color = '#ff9838';
+        else color = t.color;
+
+        // 이름
+        ctx.textAlign = 'left';
+        ctx.fillStyle = t.running ? '#cdc2ec' : '#4e4568';
+        ctx.font = '15px "Jua", "Malgun Gothic", sans-serif';
+        ctx.fillText(clip(t.name, 10), 18, y + 14);
+
+        // 남은 시간
+        ctx.textAlign = 'right';
         ctx.fillStyle = color;
-        ctx.font = 'bold 20px "Malgun Gothic", monospace';
-        ctx.fillText(text, canvas.width / 2, yPos);
-        
-        yPos += 45; // 타이머 간격 유지
+        ctx.font = 'bold 30px "Do Hyeon", "Malgun Gothic", monospace';
+        ctx.fillText(t.running || t.paused !== null ? p.m + ':' + p.s : '--:--', W - 18, y + 20);
+
+        // 진행바
+        const barY = y + 30, barW = W - 36, barH = 7;
+        ctx.fillStyle = '#0d0818';
+        roundRect(18, barY, barW, barH, 3.5);
+        ctx.fill();
+        if (t.total > 0) {
+          const w = Math.max(0, Math.min(1, remain / t.total)) * barW;
+          ctx.fillStyle = t.running ? color : '#332a4d';
+          roundRect(18, barY, w, barH, 3.5);
+          ctx.fill();
+        }
+
+        y += rowH;
       });
 
       requestAnimationFrame(drawPIP);
     }
-    
-    // 애니메이션 시작
-    drawPIP();
 
-    // PIP 모드 토글
+    function roundRect(x, y, w, h, r) {
+      if (w <= 0) { ctx.beginPath(); return; }
+      r = Math.min(r, w / 2, h / 2);
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y, x + w, y + h, r);
+      ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r);
+      ctx.arcTo(x, y, x + w, y, r);
+      ctx.closePath();
+    }
+
+    function clip(s, n) {
+      s = String(s);
+      return s.length > n ? s.slice(0, n) + '…' : s;
+    }
+
     async function togglePIP() {
       if (document.pictureInPictureElement) {
         document.exitPictureInPicture();
-      } else {
-        try {
-          await video.play();
-          await video.requestPictureInPicture();
-        } catch (error) {
-          alert('PIP 모드를 지원하지 않는 브라우저이거나 오류가 발생했습니다.\n' + error);
+        return;
+      }
+      try {
+        startPipLoop();                 // 스트림을 잡기 전에 캔버스가 먼저 그려져 있어야 합니다
+        if (!pipStream) {
+          pipStream = el.canvas.captureStream(30);
+          el.video.srcObject = pipStream;
         }
+        await el.video.play();
+        await el.video.requestPictureInPicture();
+      } catch (err) {
+        pipDrawing = false;
+        alert('PIP 모드를 지원하지 않는 브라우저이거나 오류가 발생했습니다.\n' + err);
       }
     }
+
+    /* ==========================================================
+       툴바
+       ========================================================== */
+    el.pipBtn.addEventListener('click', togglePIP);
+
+    // PIP 창을 닫으면 그리기를 멈춥니다.
+    el.video.addEventListener('leavepictureinpicture', function () {
+      pipDrawing = false;
+      el.pipBtn.classList.remove('on');
+    });
+    el.video.addEventListener('enterpictureinpicture', function () {
+      el.pipBtn.classList.add('on');
+    });
+
+    document.getElementById('start-all').addEventListener('click', function () {
+      timers.forEach(start);
+    });
+    document.getElementById('stop-all').addEventListener('click', function () {
+      timers.forEach(pause);
+    });
+    document.getElementById('reset-all').addEventListener('click', function () {
+      timers.forEach(reset);
+    });
+
+    el.soundBtn.addEventListener('click', function () {
+      soundOn = !soundOn;
+      el.soundBtn.classList.toggle('on', soundOn);
+      el.soundBtn.setAttribute('aria-pressed', String(soundOn));
+      el.soundBtn.textContent = soundOn ? '🔊 소리 켜짐' : '🔇 소리 꺼짐';
+      if (soundOn) { ensureAudio(); tone(880, 0.09, 0, 'triangle', 0.12); }
+      save();
+    });
+
+    el.notifyBtn.addEventListener('click', function () {
+      if (!('Notification' in window)) {
+        alert('이 브라우저는 알림을 지원하지 않습니다.');
+        return;
+      }
+      if (Notification.permission === 'granted') {
+        notifyOn = !notifyOn;
+        syncNotifyBtn();
+        return;
+      }
+      Notification.requestPermission().then(function (res) {
+        notifyOn = (res === 'granted');
+        syncNotifyBtn();
+        if (res === 'denied') alert('브라우저에서 알림이 차단되어 있습니다. 주소창 왼쪽 자물쇠 아이콘에서 허용해 주세요.');
+      });
+    });
+
+    function syncNotifyBtn() {
+      el.notifyBtn.classList.toggle('on', notifyOn);
+      el.notifyBtn.textContent = notifyOn ? '🔔 알림 켜짐' : '🔔 알림 켜기';
+    }
+
+    // 어디를 누르든 첫 조작에서 오디오를 깨웁니다 (브라우저 자동재생 정책 대응)
+    document.addEventListener('pointerdown', function once() {
+      ensureAudio();
+      document.removeEventListener('pointerdown', once);
+    });
+
+    /* ==========================================================
+       시작
+       ========================================================== */
+    restore();
+
+    el.soundBtn.classList.toggle('on', soundOn);
+    el.soundBtn.textContent = soundOn ? '🔊 소리 켜짐' : '🔇 소리 꺼짐';
+    if ('Notification' in window && Notification.permission === 'granted') {
+      notifyOn = true;
+    }
+    syncNotifyBtn();
+
+    timers.forEach(function (t) { el.grid.appendChild(buildCard(t)); });
+
+    renderAll();
+    setInterval(loop, 200);
+  })();
   </script>
 </body>
 </html>
