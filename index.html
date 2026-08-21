@@ -64,7 +64,7 @@
       border: 1px solid #333;
       border-radius: 15px;
       padding: 20px;
-      width: 220px;
+      width: 230px;
       transition: box-shadow 0.3s ease;
     }
 
@@ -111,6 +111,18 @@
       color: #f1c40f;
       margin-bottom: 15px;
       font-family: monospace;
+      transition: color 0.3s;
+    }
+
+    /* 10초 이하 점멸 애니메이션 */
+    @keyframes blink-red {
+      0% { color: #f1c40f; text-shadow: none; }
+      50% { color: #ff3333; text-shadow: 0 0 15px rgba(255, 51, 51, 0.8); }
+      100% { color: #f1c40f; text-shadow: none; }
+    }
+
+    .time-display.warning {
+      animation: blink-red 1s infinite;
     }
 
     /* 컨트롤 버튼 */
@@ -118,15 +130,20 @@
       background-color: #3498db;
       color: white;
       border: none;
-      padding: 8px 15px;
+      padding: 8px 12px;
       border-radius: 4px;
       cursor: pointer;
       margin: 0 2px;
       font-size: 0.9em;
+      font-weight: bold;
     }
 
     .controls button.stop {
       background-color: #95a5a6;
+    }
+    
+    .controls button.reset {
+      background-color: #e67e22;
     }
 
     .controls button:hover {
@@ -184,6 +201,7 @@
         <div class="controls">
           <button onclick="startTimer(${timer.id})">시작</button>
           <button class="stop" onclick="stopTimer(${timer.id})">정지</button>
+          <button class="reset" onclick="resetTimer(${timer.id})">리셋</button>
         </div>
       `;
       container.appendChild(card);
@@ -196,9 +214,18 @@
       return `${m}:${s}`;
     }
 
-    // 화면 업데이트
+    // 화면 업데이트 및 10초 점멸 효과 처리
     function updateDisplay(id) {
-      document.getElementById(`display-${id}`).innerText = formatTime(timers[id - 1].remainingSeconds);
+      const timer = timers[id - 1];
+      const display = document.getElementById(`display-${id}`);
+      display.innerText = formatTime(timer.remainingSeconds);
+
+      // 타이머가 작동 중이고 남은 시간이 10초 이하일 때 warning 클래스 추가
+      if (timer.isRunning && timer.remainingSeconds <= 10 && timer.remainingSeconds > 0) {
+        display.classList.add('warning');
+      } else {
+        display.classList.remove('warning');
+      }
     }
 
     // 타이머 시작
@@ -232,7 +259,7 @@
       timer.interval = setInterval(() => {
         timer.remainingSeconds--;
         
-        // 시간이 0이 되면 무한 반복 (초기 설정 시간으로 리셋)
+        // 시간이 0 미만이 되면 무한 반복 (초기 설정 시간으로 리셋)
         if (timer.remainingSeconds < 0) {
           timer.remainingSeconds = timer.totalSeconds;
         }
@@ -246,6 +273,28 @@
       timer.isRunning = false;
       clearInterval(timer.interval);
       timer.interval = null;
+      updateDisplay(id); // 정지 시 깜빡임 제거를 위해 업데이트
+    }
+
+    // 타이머 리셋
+    function resetTimer(id) {
+      const timer = timers[id - 1];
+      
+      // 타이머 정지
+      timer.isRunning = false;
+      clearInterval(timer.interval);
+      timer.interval = null;
+
+      // 입력된 시간을 가져와서 해당 시간으로 되돌림
+      const minInput = parseInt(document.getElementById(`min-${id}`).value) || 0;
+      const secInput = parseInt(document.getElementById(`sec-${id}`).value) || 0;
+      let total = (minInput * 60) + secInput;
+      if (total > 3600) total = 3600;
+
+      timer.totalSeconds = total;
+      timer.remainingSeconds = total;
+
+      updateDisplay(id); // 텍스트 갱신 및 깜빡임 제거
     }
 
     /* ---------------- PIP 기능 (Canvas & Video Stream) ---------------- */
@@ -259,9 +308,11 @@
 
     // 캔버스 그리기 루프 (PIP 화면용)
     function drawPIP() {
+      // 배경 그리기
       ctx.fillStyle = '#121212';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       
+      // 상단 제목
       ctx.fillStyle = '#f1c40f';
       ctx.font = 'bold 24px "Malgun Gothic"';
       ctx.textAlign = 'center';
@@ -269,15 +320,28 @@
 
       let yPos = 90;
       timers.forEach((timer) => {
-        if(timer.isRunning || timer.remainingSeconds > 0) {
-          ctx.fillStyle = '#ffffff';
-          ctx.font = '20px "Malgun Gothic"';
-          ctx.fillText(`T${timer.id} : ${formatTime(timer.remainingSeconds)}`, canvas.width / 2, yPos);
-        } else {
-          ctx.fillStyle = '#555555';
-          ctx.font = '20px "Malgun Gothic"';
-          ctx.fillText(`T${timer.id} : 대기중`, canvas.width / 2, yPos);
+        let text = `T${timer.id} : 대기중`;
+        let color = '#555555'; // 기본 대기 색상
+
+        if (timer.isRunning) {
+          text = `T${timer.id} : ${formatTime(timer.remainingSeconds)}`;
+          
+          // PIP에서도 10초 이하면 0.5초 간격으로 빨간색 점멸 효과
+          if (timer.remainingSeconds <= 10 && timer.remainingSeconds > 0) {
+            const blink = Math.floor(Date.now() / 500) % 2 === 0;
+            color = blink ? '#ff3333' : '#f1c40f';
+          } else {
+            color = '#ffffff'; // 정상 작동 중 색상
+          }
+        } else if (timer.remainingSeconds > 0) {
+          // 일시정지 상태일 때
+          text = `T${timer.id} : ${formatTime(timer.remainingSeconds)}`;
+          color = '#aaaaaa';
         }
+
+        ctx.fillStyle = color;
+        ctx.font = 'bold 20px "Malgun Gothic", monospace';
+        ctx.fillText(text, canvas.width / 2, yPos);
         yPos += 45;
       });
 
@@ -293,7 +357,6 @@
         document.exitPictureInPicture();
       } else {
         try {
-          // 브라우저 정책상 비디오가 한 번 재생되어야 PIP가 가능합니다.
           await video.play();
           await video.requestPictureInPicture();
         } catch (error) {
