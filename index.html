@@ -292,7 +292,8 @@
     }
 
     .chip {
-      flex: 1 1 auto;
+      /* 7개가 카드 폭에 맞춰 두 줄로 고르게 나뉘도록 basis 를 줍니다 */
+      flex: 1 1 44px;
       font-family: var(--font-ui);
       font-size: .82rem;
       color: var(--ink-dim);
@@ -471,8 +472,37 @@
     @keyframes toast-out { to   { opacity: 0; transform: translateY(-18px); } }
 
     /* ============================================================
-       PIP 렌더링용 (화면에는 보이지 않음)
+       PIP 창 — 실제 DOM을 그대로 옮겨오므로 조작이 그대로 됩니다.
+       아래 규칙은 PIP 창 안에서만 적용됩니다.
        ============================================================ */
+    body.pip-mode { padding: 10px 9px 14px; }
+    body.pip-mode .toolbar { margin: 0 auto 10px; gap: 6px; }
+    body.pip-mode .btn { padding: 6px 10px; font-size: .82rem; border-radius: 9px; }
+    body.pip-mode .grid { grid-template-columns: repeat(auto-fill, minmax(228px, 1fr)); gap: 10px; }
+    body.pip-mode .card { padding: 10px 10px 12px; border-radius: 14px; }
+    body.pip-mode .card-head { margin-bottom: 8px; }
+    body.pip-mode .d { width: 40px; height: 52px; font-size: 2.1rem; }
+    body.pip-mode .digits { gap: 4px; margin-bottom: 8px; }
+    body.pip-mode .bar { margin-bottom: 9px; }
+    body.pip-mode .chips { margin-bottom: 8px; }
+    body.pip-mode .manual { margin-bottom: 9px; }
+    body.pip-mode .btn-main { padding: 8px; font-size: .95rem; }
+
+    /* PIP로 옮겨간 동안 본 화면에 남는 안내 */
+    .pip-notice {
+      max-width: 560px;
+      margin: 30px auto;
+      padding: 26px 22px;
+      text-align: center;
+      color: var(--ink-dim);
+      background: linear-gradient(180deg, var(--panel-top), var(--panel));
+      border: 2px dashed var(--line);
+      border-radius: var(--radius-lg);
+      line-height: 1.8;
+    }
+    .pip-notice strong { color: var(--gold); font-family: var(--font-display); }
+
+    /* 캔버스 방식 PIP (Document PIP 미지원 브라우저 대비용) */
     #pip-canvas, #pip-video { position: fixed; left: -9999px; top: -9999px; }
 
     footer {
@@ -552,6 +582,8 @@
     // 빠른 선택 칩 (라벨, 초)
     const PRESETS = [
       { label: '30초', sec: 30 },
+      { label: '40초', sec: 40 },
+      { label: '50초', sec: 50 },
       { label: '1분',  sec: 60 },
       { label: '2분',  sec: 120 },
       { label: '3분',  sec: 180 },
@@ -582,6 +614,7 @@
 
     const el = {
       grid: document.getElementById('grid'),
+      toolbar: document.querySelector('.toolbar'),
       flash: document.getElementById('flash'),
       toasts: document.getElementById('toasts'),
       soundBtn: document.getElementById('sound-btn'),
@@ -594,6 +627,26 @@
     let soundOn = true;
     let notifyOn = false;
     let wakeLock = null;
+
+    // Document PIP 창과 그 안의 알림 표시 영역
+    let pipWindow = null;
+    let pipSurface = null;
+
+    // 완료 효과를 띄울 화면 목록 — 본 창과 PIP 창 양쪽에 모두 표시합니다.
+    function surfaces() {
+      const list = [{ flash: el.flash, toasts: el.toasts }];
+      if (pipWindow && pipSurface) list.push(pipSurface);
+      return list;
+    }
+
+    function fireFlash(color) {
+      surfaces().forEach(function (s) {
+        s.flash.style.background = color;
+        s.flash.classList.remove('on');
+        void s.flash.offsetWidth;      // 애니메이션 재시작을 위한 리플로우
+        s.flash.classList.add('on');
+      });
+    }
 
     /* ==========================================================
        저장 / 복원
@@ -722,10 +775,7 @@
       playAlarm();
 
       // 화면 전체 플래시 (해당 타이머 색으로)
-      el.flash.style.background = t.color;
-      el.flash.classList.remove('on');
-      void el.flash.offsetWidth;   // 애니메이션 재시작을 위한 리플로우
-      el.flash.classList.add('on');
+      fireFlash(t.color);
 
       // 카드 튀는 효과.
       // 끝나면 반드시 클래스를 떼야 합니다. 남아 있으면 .card.done 의 animation 이
@@ -753,12 +803,18 @@
     }
 
     function showToast(t) {
-      const div = document.createElement('div');
-      div.className = 'toast';
-      div.style.setProperty('--accent', t.color);
-      div.innerHTML = '<span>⏰</span><span><b>' + escapeHtml(t.name) + '</b> 시간이 끝났습니다 · ' + t.laps + '회째</span>';
-      el.toasts.appendChild(div);
-      setTimeout(function () { div.remove(); }, 4200);
+      const html = '<span>⏰</span><span><b>' + escapeHtml(t.name) +
+                   '</b> 시간이 끝났습니다 · ' + t.laps + '회째</span>';
+      surfaces().forEach(function (s) {
+        // 각 창의 document 로 만들어야 그 창에서 정상적으로 렌더링됩니다.
+        const doc = s.toasts.ownerDocument;
+        const div = doc.createElement('div');
+        div.className = 'toast';
+        div.style.setProperty('--accent', t.color);
+        div.innerHTML = html;
+        s.toasts.appendChild(div);
+        setTimeout(function () { div.remove(); }, 4200);
+      });
     }
 
     function escapeHtml(s) {
@@ -999,10 +1055,13 @@
         dom.laps.classList.toggle('has', t.laps > 0);
 
         // 직접 입력칸 (입력 중에는 건드리지 않습니다)
+        // PIP 창으로 옮겨가면 소속 document 가 바뀌므로 ownerDocument 로 확인해야
+        // PIP 안에서 타이핑하는 중에 값이 덮어씌워지지 않습니다.
         const mv = String(Math.floor(t.total / 60));
         const sv = String(t.total % 60);
-        if (document.activeElement !== dom.min && dom.min.value !== mv) dom.min.value = mv;
-        if (document.activeElement !== dom.sec && dom.sec.value !== sv) dom.sec.value = sv;
+        const focused = dom.min.ownerDocument.activeElement;
+        if (focused !== dom.min && dom.min.value !== mv) dom.min.value = mv;
+        if (focused !== dom.sec && dom.sec.value !== sv) dom.sec.value = sv;
 
         // 선택된 칩 표시
         dom.chips.forEach(function (c) {
@@ -1170,7 +1229,7 @@
       return s.length > n ? s.slice(0, n) + '…' : s;
     }
 
-    async function togglePIP() {
+    async function toggleCanvasPiP() {
       if (document.pictureInPictureElement) {
         document.exitPictureInPicture();
         return;
@@ -1187,6 +1246,90 @@
         pipDrawing = false;
         alert('PIP 모드를 지원하지 않는 브라우저이거나 오류가 발생했습니다.\n' + err);
       }
+    }
+
+    /* ==========================================================
+       Document PIP — 캔버스 영상이 아니라 실제 화면을 통째로 옮깁니다.
+       복제가 아니라 '이동'이라서 PIP 창 안에서도 시간 변경·시작·정지가
+       전부 그대로 동작합니다. (Chrome / Edge 116+)
+       ========================================================== */
+    const supportsDocPiP = ('documentPictureInPicture' in window);
+
+    let pipPlaceholder = null;
+
+    function togglePIP() {
+      if (supportsDocPiP) return toggleDocPiP();
+      return toggleCanvasPiP();     // 미지원 브라우저는 기존 영상 방식으로 대체
+    }
+
+    async function toggleDocPiP() {
+      if (pipWindow) { pipWindow.close(); return; }   // 정리는 pagehide 에서 합니다
+
+      let win;
+      try {
+        win = await window.documentPictureInPicture.requestWindow({ width: 420, height: 640 });
+      } catch (err) {
+        alert('PIP 창을 열지 못했습니다.\n' + err);
+        return;
+      }
+
+      pipWindow = win;
+      const doc = win.document;
+      doc.documentElement.lang = 'ko';
+      doc.title = '유혹 타이머';
+      copyStylesTo(doc);
+      doc.body.classList.add('pip-mode');
+
+      // 완료 플래시·토스트를 PIP 창에도 띄우기 위한 영역
+      const pf = doc.createElement('div'); pf.id = 'flash';
+      const pt = doc.createElement('div'); pt.id = 'toasts';
+      doc.body.append(pf, pt);
+      pipSurface = { flash: pf, toasts: pt };
+
+      // 본 화면에는 안내를 남기고, 툴바와 타이머를 통째로 PIP 창으로 옮깁니다.
+      pipPlaceholder = document.createElement('div');
+      pipPlaceholder.className = 'pip-notice';
+      pipPlaceholder.innerHTML =
+        '<strong>PIP 창에서 조작 중입니다</strong><br>' +
+        'PIP 창을 닫으면 타이머가 이 화면으로 돌아옵니다.';
+      el.toolbar.before(pipPlaceholder);
+
+      doc.body.append(el.toolbar, el.grid);
+
+      win.addEventListener('pagehide', restoreFromDocPiP);
+      el.pipBtn.classList.add('on');
+      el.pipBtn.textContent = '📺 PIP 닫기';
+      renderAll();
+    }
+
+    function restoreFromDocPiP() {
+      if (!pipWindow) return;
+
+      // 옮겨갔던 노드를 원래 자리로 되돌립니다.
+      if (pipPlaceholder && pipPlaceholder.parentNode) {
+        pipPlaceholder.replaceWith(el.toolbar, el.grid);
+      } else {
+        document.body.append(el.toolbar, el.grid);
+      }
+
+      pipPlaceholder = null;
+      pipSurface = null;
+      pipWindow = null;
+      el.pipBtn.classList.remove('on');
+      el.pipBtn.textContent = '📺 PIP (항상 위)';
+      renderAll();
+    }
+
+    // 본 문서의 스타일(폰트 링크 + style 태그)을 PIP 창으로 복사합니다.
+    function copyStylesTo(doc) {
+      document.querySelectorAll('link[rel="stylesheet"]').forEach(function (link) {
+        doc.head.appendChild(link.cloneNode(true));
+      });
+      document.querySelectorAll('style').forEach(function (style) {
+        const copy = doc.createElement('style');
+        copy.textContent = style.textContent;
+        doc.head.appendChild(copy);
+      });
     }
 
     /* ==========================================================
