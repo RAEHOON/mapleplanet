@@ -3,11 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>메이플스토리 흑야 길드</title>
-  <!-- 카카오톡, 디스코드 등 링크 미리보기 설정 -->
-<meta property="og:title" content="미리보기금지">
-<meta property="og:description" content="길드 홈페이지 개설예정">
-<meta property="og:image" content="zakum.jpg">
+  <title>메이플스토리 흑야 길드 - 유혹 타이머</title>
+  <meta property="og:title" content="유혹 타이머">
+  <meta property="og:description" content="최대 5개, 60분 무한 반복 타이머 지원">
   <style>
     /* 기본 배경 및 폰트 설정 (다크 테마) */
     body {
@@ -16,115 +14,293 @@
       font-family: 'Malgun Gothic', '맑은 고딕', sans-serif;
       text-align: center;
       margin: 0;
-      padding: 50px 20px;
+      padding: 40px 20px;
     }
 
-    /* 메인 제목 스타일 */
     h1 {
       color: #f1c40f;
-      font-size: 3em;
-      margin-bottom: 10px;
+      font-size: 2.5em;
+      margin-bottom: 5px;
       text-shadow: 0 0 10px rgba(241, 196, 15, 0.5);
     }
 
     p.subtitle {
       color: #aaa;
-      font-size: 1.2em;
-      margin-bottom: 50px;
+      font-size: 1.1em;
+      margin-bottom: 30px;
     }
 
-    /* 보스 카드들을 가로로 나열하는 그리드 설정 */
-    .boss-container {
+    /* PIP 버튼 스타일 */
+    .pip-btn {
+      background-color: #e74c3c;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      font-size: 1em;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-bottom: 30px;
+      font-weight: bold;
+      transition: background-color 0.2s;
+    }
+
+    .pip-btn:hover {
+      background-color: #c0392b;
+    }
+
+    /* 타이머 카드 컨테이너 */
+    .timer-container {
       display: flex;
       justify-content: center;
       flex-wrap: wrap;
-      gap: 30px;
-      max-width: 1000px;
+      gap: 20px;
+      max-width: 1200px;
       margin: 0 auto;
     }
 
-    /* 개별 보스 카드 디자인 */
-    .boss-card {
+    /* 개별 타이머 카드 */
+    .timer-card {
       background-color: #1e1e1e;
       border: 1px solid #333;
       border-radius: 15px;
       padding: 20px;
-      width: 250px;
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      width: 220px;
+      transition: box-shadow 0.3s ease;
     }
 
-    /* 카드에 마우스를 올렸을 때 살짝 떠오르는 효과 */
-    .boss-card:hover {
-      transform: translateY(-10px);
-      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.7);
+    .timer-card:hover {
+      box-shadow: 0 5px 15px rgba(241, 196, 15, 0.2);
       border-color: #f1c40f;
     }
 
-    /* 이미지 영역 설정 */
-    .boss-image {
-      width: 100%;
-      height: 200px;
-      background-color: #333;
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 15px;
-      overflow: hidden;
-    }
-
-    /* 이미지가 꽉 차고 예쁘게 잘리도록 설정 */
-    .boss-image img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
-    .boss-card h2 {
-      margin: 10px 0;
+    .timer-card h2 {
+      margin: 0 0 15px 0;
       color: #fff;
+      font-size: 1.3em;
     }
 
-    .boss-card p {
-      color: #888;
-      font-size: 0.95em;
-      line-height: 1.5;
+    /* 시간 입력 영역 */
+    .input-group {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 5px;
+      margin-bottom: 15px;
+    }
+
+    .input-group input {
+      width: 50px;
+      padding: 5px;
+      background-color: #333;
+      border: 1px solid #555;
+      color: white;
+      text-align: center;
+      font-size: 1.1em;
+      border-radius: 5px;
+    }
+
+    .input-group span {
+      font-weight: bold;
+      color: #aaa;
+    }
+
+    /* 남은 시간 표시 */
+    .time-display {
+      font-size: 2.5em;
+      font-weight: bold;
+      color: #f1c40f;
+      margin-bottom: 15px;
+      font-family: monospace;
+    }
+
+    /* 컨트롤 버튼 */
+    .controls button {
+      background-color: #3498db;
+      color: white;
+      border: none;
+      padding: 8px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin: 0 2px;
+      font-size: 0.9em;
+    }
+
+    .controls button.stop {
+      background-color: #95a5a6;
+    }
+
+    .controls button:hover {
+      opacity: 0.8;
+    }
+
+    /* 숨김 요소 (PIP를 위한 캔버스 및 비디오) */
+    #pip-canvas, #pip-video {
+      display: none;
     }
   </style>
 </head>
 <body>
 
-  
-  <div class="boss-container">
-    
-    <!-- 자쿰 카드 -->
-    <div class="boss-card">
-      <div class="boss-image">
-        <img src="jakum.jpg" alt="자쿰">
-      </div>
-      <h2>자쿰</h2>
-      <p>폐광의 가장 깊은 곳, 인내의 숲을 넘어선 자만이 도전할 수 있는 여덟 개의 팔.</p>
-    </div>
+  <h1>유혹 타이머</h1>
+  <p class="subtitle">설정한 시간이 되면 자동으로 처음으로 돌아가 무한 반복됩니다. (최대 60분)</p>
 
-    <!-- 혼테일 카드 -->
-    <div class="boss-card">
-      <div class="boss-image">
-        <img src="hon.png" alt="혼테일">
-      </div>
-      <h2>혼테일</h2>
-      <p>생명의 동굴을 지배하는 거대한 세 개의 머리. 진정한 용사들의 시험 무대.</p>
-    </div>
+  <button class="pip-btn" onclick="togglePIP()">📺 PIP 모드 켜기 (항상 위)</button>
 
-    <!-- 핑크빈 카드 -->
-    <div class="boss-card">
-      <div class="boss-image">
-        <img src="pinkbin.jpg" alt="핑크빈">
-      </div>
-      <h2>핑크빈</h2>
-      <p>시간의 신전 너머에서 온 귀여운 파괴자. 겉모습에 속지 마세요!</p>
-    </div>
-
+  <div class="timer-container" id="timer-container">
+    <!-- 자바스크립트로 5개의 타이머가 생성됩니다 -->
   </div>
 
+  <!-- PIP 렌더링용 캔버스와 비디오 -->
+  <canvas id="pip-canvas" width="300" height="350"></canvas>
+  <video id="pip-video" muted autoplay playsinline></video>
+
+  <script>
+    const MAX_TIMERS = 5;
+    const timers = [];
+
+    // 타이머 객체 초기화
+    for (let i = 0; i < MAX_TIMERS; i++) {
+      timers.push({
+        id: i + 1,
+        interval: null,
+        totalSeconds: 0,
+        remainingSeconds: 0,
+        isRunning: false
+      });
+    }
+
+    // 화면에 타이머 UI 생성
+    const container = document.getElementById('timer-container');
+    timers.forEach((timer, index) => {
+      const card = document.createElement('div');
+      card.className = 'timer-card';
+      card.innerHTML = `
+        <h2>타이머 ${timer.id}</h2>
+        <div class="input-group">
+          <input type="number" id="min-${timer.id}" min="0" max="60" value="1" placeholder="분"> <span>분</span>
+          <input type="number" id="sec-${timer.id}" min="0" max="59" value="0" placeholder="초"> <span>초</span>
+        </div>
+        <div class="time-display" id="display-${timer.id}">00:00</div>
+        <div class="controls">
+          <button onclick="startTimer(${timer.id})">시작</button>
+          <button class="stop" onclick="stopTimer(${timer.id})">정지</button>
+        </div>
+      `;
+      container.appendChild(card);
+    });
+
+    // 시간 포맷팅 (MM:SS)
+    function formatTime(totalSecs) {
+      const m = Math.floor(totalSecs / 60).toString().padStart(2, '0');
+      const s = (totalSecs % 60).toString().padStart(2, '0');
+      return `${m}:${s}`;
+    }
+
+    // 화면 업데이트
+    function updateDisplay(id) {
+      document.getElementById(`display-${id}`).innerText = formatTime(timers[id - 1].remainingSeconds);
+    }
+
+    // 타이머 시작
+    function startTimer(id) {
+      const timer = timers[id - 1];
+      if (timer.isRunning) return;
+
+      const minInput = parseInt(document.getElementById(`min-${id}`).value) || 0;
+      const secInput = parseInt(document.getElementById(`sec-${id}`).value) || 0;
+      
+      let total = (minInput * 60) + secInput;
+      
+      // 최대 60분(3600초) 제한
+      if (total > 3600) {
+        total = 3600;
+        document.getElementById(`min-${id}`).value = 60;
+        document.getElementById(`sec-${id}`).value = 0;
+      }
+      
+      if (total <= 0) return;
+
+      // 새로 시작하는 경우에만 초기 시간 세팅
+      if (timer.remainingSeconds === 0 || !timer.interval) {
+        timer.totalSeconds = total;
+        timer.remainingSeconds = total;
+      }
+
+      timer.isRunning = true;
+      updateDisplay(id);
+
+      timer.interval = setInterval(() => {
+        timer.remainingSeconds--;
+        
+        // 시간이 0이 되면 무한 반복 (초기 설정 시간으로 리셋)
+        if (timer.remainingSeconds < 0) {
+          timer.remainingSeconds = timer.totalSeconds;
+        }
+        updateDisplay(id);
+      }, 1000);
+    }
+
+    // 타이머 정지
+    function stopTimer(id) {
+      const timer = timers[id - 1];
+      timer.isRunning = false;
+      clearInterval(timer.interval);
+      timer.interval = null;
+    }
+
+    /* ---------------- PIP 기능 (Canvas & Video Stream) ---------------- */
+    const canvas = document.getElementById('pip-canvas');
+    const ctx = canvas.getContext('2d');
+    const video = document.getElementById('pip-video');
+    
+    // 캔버스에 비디오 스트림 연결
+    const stream = canvas.captureStream(30); 
+    video.srcObject = stream;
+
+    // 캔버스 그리기 루프 (PIP 화면용)
+    function drawPIP() {
+      ctx.fillStyle = '#121212';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      ctx.fillStyle = '#f1c40f';
+      ctx.font = 'bold 24px "Malgun Gothic"';
+      ctx.textAlign = 'center';
+      ctx.fillText('유혹 타이머', canvas.width / 2, 40);
+
+      let yPos = 90;
+      timers.forEach((timer) => {
+        if(timer.isRunning || timer.remainingSeconds > 0) {
+          ctx.fillStyle = '#ffffff';
+          ctx.font = '20px "Malgun Gothic"';
+          ctx.fillText(`T${timer.id} : ${formatTime(timer.remainingSeconds)}`, canvas.width / 2, yPos);
+        } else {
+          ctx.fillStyle = '#555555';
+          ctx.font = '20px "Malgun Gothic"';
+          ctx.fillText(`T${timer.id} : 대기중`, canvas.width / 2, yPos);
+        }
+        yPos += 45;
+      });
+
+      requestAnimationFrame(drawPIP);
+    }
+    
+    // 애니메이션 시작
+    drawPIP();
+
+    // PIP 모드 토글
+    async function togglePIP() {
+      if (document.pictureInPictureElement) {
+        document.exitPictureInPicture();
+      } else {
+        try {
+          // 브라우저 정책상 비디오가 한 번 재생되어야 PIP가 가능합니다.
+          await video.play();
+          await video.requestPictureInPicture();
+        } catch (error) {
+          alert('PIP 모드를 지원하지 않는 브라우저이거나 오류가 발생했습니다.\n' + error);
+        }
+      }
+    }
+  </script>
 </body>
 </html>
