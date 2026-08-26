@@ -383,6 +383,32 @@
     }
     .r.best .tag, .r.bad .tag { background: var(--seal); border-color: var(--seal); color: var(--paper-in); }
 
+    /* 아직 안 채운 칸 안내 — 오류가 아니므로 붉은색을 쓰지 않습니다 */
+    .notice {
+      padding: 16px 16px 14px;
+      border: 2px solid var(--line);
+      background: var(--paper-warm);
+      font-family: var(--font-ui);
+      color: var(--ink-mid);
+    }
+    .notice-head {
+      margin: 0 0 10px;
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--ink);
+      letter-spacing: .02em;
+    }
+    .notice ul { margin: 0; padding-left: 20px; }
+    .notice li { font-size: 15px; color: var(--ink); line-height: 1.9; }
+    .notice-tail {
+      margin: 12px 0 0;
+      padding-top: 11px;
+      border-top: 1px solid var(--rule);
+      font-size: 13px;
+      line-height: 1.75;
+      color: var(--ink-soft);
+    }
+
     .error {
       padding: 14px 10px;
       border: 2px solid var(--seal);
@@ -599,7 +625,7 @@
 
     <div class="toolbar">
       <button class="btn" id="copy">결과 복사</button>
-      <button class="btn" id="reset">기본값으로</button>
+      <button class="btn" id="reset">입력 지우기</button>
     </div>
 
     <footer>
@@ -620,17 +646,27 @@
 
     const STORE_KEY = 'meso-calc-v1';
 
+    // 시세는 매일 바뀌므로 아무 값도 넣어 두지 않습니다.
+    // 캐시샵 큐브만 정가라 기본값을 채워 둡니다.
     const DEFAULTS = {
-      parcel1M:  '700',
-      parcelCube:'350',
-      fm1M:      '650',
-      auction:   '650000',
+      parcel1M:  '',
+      parcelCube:'',
+      fm1M:      '',
+      auction:   '',
       qty:       '100',
       cash1:     '450',
       cashN:     '4500',
       cashNQty:  '11',
       items:     []
     };
+
+    // 사용자가 채워야 계산이 되는 칸들
+    const REQUIRED = [
+      { id: 'parcel1M',   name: '업자 택배 100만메소당' },
+      { id: 'parcelCube', name: '업자 큐브 가격' },
+      { id: 'fm1M',       name: '자유시장 100만메소당' },
+      { id: 'auction',    name: '경매장 큐브 시세' }
+    ];
 
     /* ==========================================================
        숫자 도우미
@@ -801,15 +837,15 @@
 
       if (bad) return { error: '숫자가 아닌 값이 들어간 칸이 있습니다.' };
 
-      if (!(v.parcel1M > 0 && v.fm1M > 0 && v.auction > 0 && v.parcelCube > 0)) {
-        return { error: '시세 · 가격 항목은 0보다 커야 합니다.' };
-      }
-
       // 캐시샵 큐브 개당 단가 — 낱개와 묶음 중 싼 쪽
       let cashUnit = Infinity;
       if (v.cash1 > 0) cashUnit = v.cash1;
       if (v.cashN > 0 && v.cashNQty >= 1) cashUnit = Math.min(cashUnit, v.cashN / v.cashNQty);
-      if (!isFinite(cashUnit)) return { error: '캐시샵 큐브 가격을 넣어 주세요.' };
+
+      // 아직 안 채운 칸은 잘못된 게 아닙니다 — 무엇이 남았는지만 알려 줍니다.
+      const need = REQUIRED.filter(function (f) { return !(v[f.id] > 0); }).map(function (f) { return f.name; });
+      if (!isFinite(cashUnit)) need.push('캐시샵 큐브 가격');
+      if (need.length) return { need: need, cashUnit: isFinite(cashUnit) ? cashUnit : null };
 
       const r = {};
       r.cashUnit   = cashUnit;
@@ -951,6 +987,34 @@
         return;
       }
 
+      if (r.need) {
+        $('fmEff').textContent = '';
+        $('cashUnit').textContent = r.cashUnit ? '개당 ' + fmt(r.cashUnit, 1) + '원' : '';
+
+        const box = document.createElement('div');
+        box.className = 'notice';
+        const head = document.createElement('p');
+        head.className = 'notice-head';
+        head.textContent = '시세를 넣으면 바로 계산합니다';
+        box.appendChild(head);
+
+        const ul = document.createElement('ul');
+        r.need.forEach(function (name) {
+          const li = document.createElement('li');
+          li.textContent = name;
+          ul.appendChild(li);
+        });
+        box.appendChild(ul);
+
+        const tail = document.createElement('p');
+        tail.className = 'notice-tail';
+        tail.textContent = '시세는 매일 바뀌어서 미리 채워 두지 않았습니다. 한 번 넣으면 이 브라우저에 저장됩니다.';
+        box.appendChild(tail);
+
+        out.appendChild(box);
+        return;
+      }
+
       $('fmEff').textContent =
         '실효 환율  1 : ' + fmt(r.fmEff, 1) + '   (실수령 100만당 ' + won(r.fmEff1M) + ')';
       $('cashUnit').textContent =
@@ -1075,12 +1139,14 @@
     // 100만메소당 ↔ 환율(1원당 메소) 는 서로의 역수 관계입니다.
     function sync(srcId, dstId) {
       if (syncing) return;
+      const raw = $(srcId).value.trim();
       const v = num($(srcId));
-      if (!isNaN(v) && v > 0) {
-        syncing = true;
-        $(dstId).value = loose(1e6 / v);
-        syncing = false;
-      }
+
+      syncing = true;
+      if (raw === '') $(dstId).value = '';                       // 비우면 짝도 비웁니다
+      else if (!isNaN(v) && v > 0) $(dstId).value = loose(1e6 / v);
+      syncing = false;
+
       onAny();
     }
 
@@ -1133,9 +1199,10 @@
       $('cashN').value      = DEFAULTS.cashN;
       $('cashNQty').value   = DEFAULTS.cashNQty;
 
+      // 100만메소당이 비어 있으면 환율 칸도 비웁니다
       syncing = true;
-      $('parcelRate').value = loose(1e6 / Number(DEFAULTS.parcel1M));
-      $('fmRate').value     = loose(1e6 / Number(DEFAULTS.fm1M));
+      $('parcelRate').value = '';
+      $('fmRate').value     = '';
       syncing = false;
     }
 
