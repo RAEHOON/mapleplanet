@@ -722,16 +722,57 @@
 
     /* 도구모음으로 돌아가는 링크 */
     .home {
-      display: inline-block;
+      display: inline-flex;
+      align-items: center;
+      min-height: 44px;
       color: var(--ink-dim);
       text-decoration: none;
       font-size: .92rem;
-      padding: 6px 12px;
+      padding: 6px 14px;
       border: 2px solid var(--line);
       border-radius: var(--radius-sm);
       background: var(--panel);
     }
     .home:hover { color: var(--ink); border-color: var(--gold); }
+
+    /* ============================================================
+       좁은 화면 — 손가락으로 누르는 크기(44px)를 확보합니다
+       ============================================================ */
+    @media (max-width: 560px) {
+      body { padding: 16px 10px 48px; }
+
+      .toolbar { gap: 6px; margin: 14px auto 20px; }
+      .btn { padding: 11px 14px; }
+
+      .grid { grid-template-columns: 1fr; gap: 14px; }
+
+      .name { min-height: 44px; font-size: 1rem; }
+      .pip-pick { width: 40px; height: 40px; }
+
+      /* 프리셋 칩은 네 칸 격자로 — 마지막 줄 하나가 통째로 늘어나지 않게 */
+      .chips { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+      .chip { min-height: 44px; padding: 6px 2px; }
+
+      .steps { gap: 6px; }
+      .step { min-height: 44px; }
+
+      .manual input { min-height: 44px; font-size: 1.15rem; }
+
+      .btn-clear { width: 44px; height: 44px; font-size: 1.15rem; }
+      .btn-reset { width: 52px; height: 52px; }
+      .btn-main { padding: 13px; }
+
+      .time-row { gap: 8px; }
+      .d { width: 42px; height: 56px; font-size: 2.2rem; }
+      .colon { font-size: 1.8rem; }
+    }
+
+    /* 아주 좁은 화면(360 이하)에서는 자릿수를 한 단계 더 줄입니다 */
+    @media (max-width: 380px) {
+      .d { width: 37px; height: 50px; font-size: 1.95rem; }
+      .btn-reset { width: 46px; height: 46px; }
+      .time-row { gap: 6px; }
+    }
 
     /* 애니메이션을 줄이도록 설정한 사용자 배려 */
     @media (prefers-reduced-motion: reduce) {

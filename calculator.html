@@ -403,6 +403,48 @@
       line-height: 1.9;
     }
 
+    /* ============================================================
+       좁은 화면 — 표를 아이템 한 개당 카드 하나로 접습니다.
+       가로로 밀어 보게 두면 어느 칸을 채우는지 알 수 없습니다.
+       ============================================================ */
+    @media (max-width: 760px) {
+      .table-scroll { overflow-x: visible; }
+      table { min-width: 0; }
+      thead { display: none; }
+      tbody, tbody tr, tbody td { display: block; width: 100%; }
+
+      tbody tr {
+        border: 2px solid var(--line);
+        padding: 10px 12px 12px;
+        margin-bottom: 14px;
+      }
+
+      tbody td {
+        border: none;
+        padding: 6px 0;
+        display: grid;
+        grid-template-columns: 104px 1fr;
+        align-items: center;
+        gap: 10px;
+      }
+      tbody td::before {
+        content: attr(data-label);
+        font-size: 13px;
+        color: var(--ink-mid);
+      }
+      tbody td:first-child { padding-left: 0; }
+      tbody td input[type="text"] { min-width: 0; }
+
+      tbody td.del-cell {
+        display: flex;
+        justify-content: flex-end;
+        padding-top: 10px;
+        margin-top: 4px;
+        border-top: 1px solid var(--rule);
+      }
+      tbody td.del-cell::before { content: none; }
+    }
+
     /* 좁은 화면에서는 결과 행을 접습니다. */
     @media (max-width: 760px) {
       .r.rank { grid-template-columns: 76px 1fr; }
@@ -414,6 +456,10 @@
       /* 칸이 접히면 머리글 줄이 오히려 헷갈립니다 */
       .r.cmp.hdr { display: none; }
       .field { grid-template-columns: 1fr 130px 44px; }
+      body { padding: 18px 10px 48px; }
+      .cards { gap: 12px; }
+      .panel { padding: 14px 12px 16px; }
+      .r { padding: 10px 6px; }
     }
   </style>
 </head>
@@ -642,13 +688,14 @@
     /* ==========================================================
        아이템 표
        ========================================================== */
+    // label 은 좁은 화면에서 칸 이름표로 쓰입니다 (표가 카드로 접힐 때)
     const COLS = [
-      { key: 'name',       cls: 'name', ph: '아이템 이름' },
-      { key: 'cash',       cls: '',     ph: '0' },
-      { key: 'bundle',     cls: '',     ph: '0' },
-      { key: 'bundleQty',  cls: '',     ph: '0' },
-      { key: 'price',      cls: '',     ph: '0' },
-      { key: 'qty',        cls: '',     ph: '1' }
+      { key: 'name',       cls: 'name', ph: '아이템 이름',  label: '이름' },
+      { key: 'cash',       cls: '',     ph: '0',           label: '낱개가 (원)' },
+      { key: 'bundle',     cls: '',     ph: '0',           label: '묶음가 (원)' },
+      { key: 'bundleQty',  cls: '',     ph: '0',           label: '묶음 수량' },
+      { key: 'price',      cls: '',     ph: '0',           label: '경매장 시세 (메소)' },
+      { key: 'qty',        cls: '',     ph: '1',           label: '개수' }
     ];
 
     function addRow(data) {
@@ -657,6 +704,7 @@
 
       COLS.forEach(function (c) {
         const td = document.createElement('td');
+        td.dataset.label = c.label;
         const inp = document.createElement('input');
         inp.type = 'text';
         inp.className = c.cls;
@@ -670,6 +718,7 @@
       });
 
       const td = document.createElement('td');
+      td.className = 'del-cell';
       const del = document.createElement('button');
       del.className = 'del';
       del.type = 'button';
