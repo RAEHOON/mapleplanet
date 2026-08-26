@@ -4,9 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>유혹 타이머</title>
-  <meta name="description" content="최대 5개, 60분까지 무한 반복되는 타이머. 임박 경고와 알림음 지원.">
+  <meta name="description" content="최대 8개, 60분까지 무한 반복되는 타이머. 임박 경고와 알림음 지원.">
   <meta property="og:title" content="유혹 타이머">
-  <meta property="og:description" content="최대 5개, 60분 무한 반복 타이머. 임박하면 점멸·알림음으로 확실하게 알려줍니다.">
+  <meta property="og:description" content="최대 8개, 60분 무한 반복 타이머. 임박하면 점멸·알림음으로 확실하게 알려줍니다.">
   <meta name="theme-color" content="#ddcfb0">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -318,6 +318,8 @@
       z-index: 1;
     }
 
+    .steps-grp { display: flex; gap: 4px; flex: 1 1 0; }
+
     .step {
       flex: 1 1 0;
       min-width: 0;
@@ -509,122 +511,142 @@
     @keyframes toast-out { to   { opacity: 0; transform: translateY(-18px); } }
 
     /* ============================================================
-       PIP 창 — 실제 DOM을 그대로 옮겨오므로 조작이 그대로 됩니다.
-       아래 규칙은 PIP 창 안에서만 적용됩니다.
+       PIP 창 — 실제 DOM을 통째로 옮겨오므로 창 안에서도 조작이 그대로
+       됩니다. 배치는 하나뿐입니다: 타이머 한 개가 딱 한 줄.
+       [색] [이름] [남은시간] [−5 −3 −1] [재생] [+1 +3 +5] [리셋]
        ============================================================ */
-    body.pip-mode { padding: 10px 9px 14px; }
-    body.pip-mode .toolbar { margin: 0 auto 10px; gap: 6px; }
-    body.pip-mode .btn { padding: 6px 10px; font-size: .82rem; border-radius: 0; }
-    body.pip-mode .grid { grid-template-columns: repeat(auto-fill, minmax(228px, 1fr)); gap: 10px; }
-    body.pip-mode .card { padding: 10px 10px 12px; border-radius: 0; }
-    body.pip-mode .card-head { margin-bottom: 8px; }
-    body.pip-mode .d { width: 40px; height: 52px; font-size: 2.1rem; }
-    body.pip-mode .digits { gap: 4px; margin-bottom: 8px; }
-    body.pip-mode .bar { margin-bottom: 9px; }
-    body.pip-mode .chips { margin-bottom: 8px; }
-    body.pip-mode .steps { margin-bottom: 8px; }
-    body.pip-mode .manual { margin-bottom: 9px; }
-    body.pip-mode .btn-main { padding: 8px; font-size: .95rem; }
+    body.pip-mode { padding: 6px; }
 
-    /* '간단히' 버튼을 누른 압축 배치 — 타이머 하나가 딱 한 줄입니다.
-       창을 작게 줄여도 이름·남은시간·조작이 모두 보이도록 만든 배치입니다. */
-    body.pip-mode.compact { padding: 5px; }
-
-    body.pip-mode.compact .toolbar { margin: 0 0 5px; gap: 3px; }
-    body.pip-mode.compact .btn {
-      padding: 3px 6px;
-      font-size: .68rem;
+    body.pip-mode .toolbar {
+      margin: 0 0 6px;
+      gap: 4px;
+      justify-content: flex-start;
+      max-width: none;
+    }
+    body.pip-mode .btn {
+      padding: 4px 8px;
+      font-size: .76rem;
       border-width: 1px;
       border-radius: 0;
-      box-shadow: 0 2px 0 rgba(0,0,0,.45);
+      box-shadow: none;
     }
 
-    body.pip-mode.compact .grid { grid-template-columns: 1fr; gap: 3px; }
+    body.pip-mode .grid { grid-template-columns: 1fr; gap: 4px; max-width: none; }
 
-    /* 카드를 세로 스택에서 가로 한 줄로 바꿉니다.
-       칸을 명시적으로 지정합니다 — 자동 배치에 맡기면 전체폭인 .bar 때문에
-       조작 버튼이 셋째 줄로 밀려나 높이가 두 배가 됩니다. */
-    body.pip-mode.compact .card {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) auto auto;
-      grid-template-rows: auto auto;
+    body.pip-mode .card {
+      display: flex;
       align-items: center;
-      gap: 0 7px;
-      padding: 4px 7px 5px;
+      gap: 6px;
+      padding: 5px 7px 9px;
       border-width: 1px;
-      border-radius: 0;
       box-shadow: none;
     }
-    body.pip-mode.compact .card::before { display: none; }
 
-    body.pip-mode.compact .card-head { grid-area: 1 / 1; }
-    body.pip-mode.compact .digits    { grid-area: 1 / 2; }
-    body.pip-mode.compact .controls  { grid-area: 1 / 3; }
-    body.pip-mode.compact .bar       { grid-area: 2 / 1 / 3 / -1; }
+    /* 묶음 상자를 걷어내 버튼들이 카드의 직계 자식으로 한 줄에 섭니다. */
+    body.pip-mode .steps,
+    body.pip-mode .controls { display: contents; }
 
-    /* 한 줄에 안 들어가는 것들은 감춥니다 (시간 설정은 본 창에서) */
-    body.pip-mode.compact .chips,
-    body.pip-mode.compact .steps,
-    body.pip-mode.compact .manual { display: none; }
+    body.pip-mode .card-head       { order: 1; flex: 1 1 0; min-width: 0; margin: 0; gap: 4px; }
+    body.pip-mode .digits          { order: 2; flex: 0 0 auto; margin: 0; gap: 0; }
+    body.pip-mode .steps-grp.minus { order: 3; }
+    body.pip-mode .btn-main        { order: 4; }
+    body.pip-mode .steps-grp.plus  { order: 5; }
+    body.pip-mode .btn-reset       { order: 6; }
 
-    body.pip-mode.compact .card-head { margin: 0; gap: 5px; }
-    body.pip-mode.compact .swatch { width: 13px; height: 13px; border-width: 1px; box-shadow: none; }
-    body.pip-mode.compact .name { font-size: .8rem; padding: 1px 3px; border-width: 1px; }
-    body.pip-mode.compact .laps { font-size: .65rem; min-width: 0; }
+    body.pip-mode .steps-grp { display: flex; gap: 2px; flex: 0 0 auto; }
 
-    /* 숫자 타일을 걷어내고 글자만 남겨 높이를 줄입니다 */
-    body.pip-mode.compact .digits { margin: 0; gap: 0; }
-    body.pip-mode.compact .d {
-      width: auto;
-      height: auto;
-      padding: 0;
-      font-size: 1.3rem;
-      background: none;
-      border: 0;
-      box-shadow: none;
-    }
-    body.pip-mode.compact .colon { font-size: 1.1rem; padding: 0 1px; }
-
-    /* 진행바는 카드 아래쪽에 얇은 띠로 깔립니다 */
-    body.pip-mode.compact .bar {
-      grid-column: 1 / -1;
+    /* 진행바는 행 아래쪽에 얇게 깔립니다 — 줄이 두 줄로 늘어나지 않도록. */
+    body.pip-mode .bar {
+      position: absolute;
+      left: 1px; right: 1px; bottom: 1px;
       height: 3px;
-      margin: 3px 0 0;
-      border: 0;
-      border-radius: 0;
+      margin: 0;
+      border: none;
+      background: #e7dcc2;
+    }
+
+    /* 프리셋 칩과 직접 입력은 한 줄에 들어갈 자리가 없어 뺍니다. */
+    body.pip-mode .chips,
+    body.pip-mode .manual { display: none; }
+
+    body.pip-mode .swatch { width: 13px; height: 13px; border-width: 1px; }
+    body.pip-mode .name   { font-size: .8rem; padding: 1px 3px; border-width: 1px; }
+    body.pip-mode .laps   { font-size: .65rem; min-width: 0; }
+
+    body.pip-mode .d {
+      width: 21px;
+      height: 30px;
+      font-size: 1.25rem;
+      border-width: 1px;
+    }
+    body.pip-mode .colon { font-size: 1rem; padding: 0 1px; }
+
+    body.pip-mode .step {
+      flex: 0 0 auto;
+      width: 25px;
+      padding: 4px 0;
+      font-size: .74rem;
+      border-width: 1px;
+    }
+
+    body.pip-mode .btn-main {
+      flex: 0 0 auto;
+      width: 34px;
+      gap: 0;
+      padding: 6px 0;
+      font-size: .95rem;
+      border-width: 1px;
       box-shadow: none;
     }
-    body.pip-mode.compact .bar-fill { border-radius: 0; }
-    body.pip-mode.compact .bar-fill::after { display: none; }
+    body.pip-mode .btn-main .lbl { display: none; }
 
-    /* 조작 버튼은 아이콘만 남깁니다 */
-    body.pip-mode.compact .controls { gap: 3px; }
-    body.pip-mode.compact .btn-main {
+    body.pip-mode .btn-reset {
       flex: 0 0 auto;
-      width: 28px;
-      padding: 4px 0;
-      font-size: .78rem;
+      width: 26px;
+      font-size: .9rem;
       border-width: 1px;
-      border-radius: 0;
-      box-shadow: 0 2px 0 rgba(0,0,0,.45);
-    }
-    body.pip-mode.compact .btn-main .lbl { display: none; }
-    body.pip-mode.compact .btn-reset {
-      width: 24px;
-      font-size: .78rem;
-      border-width: 1px;
-      border-radius: 0;
-      box-shadow: 0 2px 0 rgba(0,0,0,.45);
+      box-shadow: none;
     }
 
-    /* 압축 배치에서는 흔들림이 옆 칸을 밀어내므로 색·점멸만 남깁니다 */
-    body.pip-mode.compact .card.critical .digits { animation: none; }
+    /* 흔들림은 옆 칸을 밀어내므로 한 줄 배치에서는 끕니다. */
+    body.pip-mode .card.critical .digits { animation: none; }
 
-    /* '간단히/자세히' 토글은 PIP 창 안에서만 의미가 있습니다 */
-    #compact-btn { display: none; }
-    body.pip-mode #compact-btn { display: inline-block; }
+    /* ---------- PIP에 담지 않은 타이머 ----------
+       아주 감춰 버리면 PIP 안에서 되돌릴 방법이 없어, 이름줄만 남깁니다. */
+    body.pip-mode .card.pip-off { padding: 3px 7px; opacity: .72; }
+    body.pip-mode .card.pip-off .digits,
+    body.pip-mode .card.pip-off .steps-grp,
+    body.pip-mode .card.pip-off .btn-main,
+    body.pip-mode .card.pip-off .btn-reset,
+    body.pip-mode .card.pip-off .bar { display: none; }
+    body.pip-mode .card.pip-off .name { font-size: .72rem; }
 
-    /* PIP로 옮겨간 동안 본 화면에 남는 안내 */
+    /* ---------- PIP 담기 토글 ---------- */
+    .pip-pick {
+      flex: 0 0 auto;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 30px;
+      height: 30px;
+      padding: 0;
+      color: var(--ink-faint);
+      background: transparent;
+      border: 2px solid var(--line-soft);
+      border-radius: 0;
+      cursor: pointer;
+      transition: color .15s, border-color .15s, background .15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .pip-pick:hover { color: var(--ink); border-color: var(--line); }
+    .pip-pick:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+    .pip-pick[aria-pressed="true"] {
+      color: var(--paper-in);
+      background: var(--gold);
+      border-color: var(--gold);
+    }
+    body.pip-mode .pip-pick { width: 22px; height: 22px; border-width: 1px; }
+
     .pip-notice {
       max-width: 560px;
       margin: 30px auto;
@@ -704,7 +726,6 @@
     <button class="btn on" id="sound-btn" aria-pressed="true">🔊 소리 켜짐</button>
     <button class="btn" id="notify-btn">🔔 알림 켜기</button>
     <button class="btn" id="pip-btn">📺 PIP (항상 위)</button>
-    <button class="btn" id="compact-btn" aria-pressed="true">▤ 간단히</button>
   </div>
 
   <main class="grid" id="grid"></main>
@@ -724,7 +745,7 @@
     /* ==========================================================
        설정
        ========================================================== */
-    const MAX_TIMERS = 5;
+    const MAX_TIMERS = 8;
     const MAX_SECONDS = 3600;          // 60분
     const WARN_AT = 30;                // 주의 시작 (초)
     const DANGER_AT = 10;              // 경고 시작 (초)
@@ -767,6 +788,7 @@
         paused: null,
         running: false,
         laps: 0,
+        inPip: true,      // PIP 창에 담을지 — 카드의 PIP 버튼으로 켜고 끕니다
         lastShown: null   // 초 단위 변화 감지용 (틱 소리 중복 방지)
       });
     }
@@ -779,7 +801,6 @@
       soundBtn: document.getElementById('sound-btn'),
       notifyBtn: document.getElementById('notify-btn'),
       pipBtn: document.getElementById('pip-btn'),
-      compactBtn: document.getElementById('compact-btn'),
       canvas: document.getElementById('pip-canvas'),
       video: document.getElementById('pip-video')
     };
@@ -787,7 +808,6 @@
     let soundOn = true;
     let notifyOn = false;
     let wakeLock = null;
-    let pipCompact = true;   // PIP는 기본으로 한 줄짜리 압축 배치
 
     // Document PIP 창과 그 안의 알림 표시 영역
     let pipWindow = null;
@@ -816,11 +836,11 @@
       try {
         localStorage.setItem(STORE_KEY, JSON.stringify({
           soundOn: soundOn,
-          pipCompact: pipCompact,
           timers: timers.map(function (t) {
             return {
               name: t.name, color: t.color, total: t.total,
-              endsAt: t.endsAt, paused: t.paused, running: t.running, laps: t.laps
+              endsAt: t.endsAt, paused: t.paused, running: t.running,
+              laps: t.laps, inPip: t.inPip
             };
           })
         }));
@@ -837,7 +857,6 @@
       if (!data || !Array.isArray(data.timers)) return;
 
       if (typeof data.soundOn === 'boolean') soundOn = data.soundOn;
-      if (typeof data.pipCompact === 'boolean') pipCompact = data.pipCompact;
 
       data.timers.forEach(function (s, i) {
         const t = timers[i];
@@ -847,6 +866,7 @@
         if (typeof s.total === 'number') t.total = clampSeconds(s.total);
         if (typeof s.laps === 'number') t.laps = s.laps;
         if (typeof s.paused === 'number') t.paused = s.paused;
+        if (typeof s.inPip === 'boolean') t.inPip = s.inPip;
 
         // 작동 중이었다면 종료 시각을 그대로 살려서 이어서 카운트합니다.
         if (s.running && typeof s.endsAt === 'number' && t.total > 0) {
@@ -1078,7 +1098,21 @@
       const laps = document.createElement('span');
       laps.className = 'laps';
 
-      head.append(swatch, name, laps);
+      const pick = document.createElement('button');
+      pick.className = 'pip-pick';
+      pick.type = 'button';
+      pick.innerHTML =
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+        'stroke-width="2" stroke-linejoin="round" aria-hidden="true">' +
+        '<rect x="2" y="4" width="20" height="16"></rect>' +
+        '<rect x="12" y="12" width="8" height="6" fill="currentColor"></rect></svg>';
+      pick.addEventListener('click', function () {
+        t.inPip = !t.inPip;
+        applyPipPick(t);
+        save();
+      });
+
+      head.append(swatch, name, laps, pick);
 
       /* --- 시간 표시 (자릿수 타일) --- */
       const digits = document.createElement('div');
@@ -1117,6 +1151,14 @@
       /* --- 미세 조절 (±1 · ±3 · ±5초) --- */
       const steps = document.createElement('div');
       steps.className = 'steps';
+
+      // −묶음과 +묶음을 따로 둡니다. PIP에서는 이 둘 사이에 재생 버튼이 들어갑니다.
+      const minusGrp = document.createElement('div');
+      minusGrp.className = 'steps-grp minus';
+      const plusGrp = document.createElement('div');
+      plusGrp.className = 'steps-grp plus';
+      steps.append(minusGrp, plusGrp);
+
       const stepEls = STEPS.map(function (delta) {
         const b = document.createElement('button');
         b.className = 'step ' + (delta > 0 ? 'plus' : 'minus');
@@ -1127,7 +1169,7 @@
         b.title = Math.abs(delta) + '초 ' + (delta > 0 ? '늘리기' : '줄이기');
         b.setAttribute('aria-label', t.name + ' ' + b.title);
         b.addEventListener('click', function () { setTotal(t, t.total + delta); });
-        steps.appendChild(b);
+        (delta > 0 ? plusGrp : minusGrp).appendChild(b);
         return b;
       });
 
@@ -1187,11 +1229,25 @@
       t.dom = {
         card: card, name: name, laps: laps,
         dm1: dm1, dm2: dm2, ds1: ds1, ds2: ds2,
-        fill: fill, chips: chipEls, steps: stepEls,
+        fill: fill, chips: chipEls, steps: stepEls, pick: pick,
         min: min, sec: sec,
         mainBtn: mainBtn, mainIco: mainIco, mainLbl: mainLbl
       };
       return card;
+    }
+
+    // PIP에 담을지 여부를 카드와 버튼에 반영합니다.
+    function applyPipPick(t) {
+      const d = t.dom;
+      if (!d) return;
+      d.card.classList.toggle('pip-off', !t.inPip);
+      d.pick.setAttribute('aria-pressed', String(t.inPip));
+      d.pick.title = t.inPip ? 'PIP에서 빼기' : 'PIP에 넣기';
+      d.pick.setAttribute('aria-label', t.name + (t.inPip ? ' PIP에서 빼기' : ' PIP에 넣기'));
+    }
+
+    function pipCount() {
+      return timers.filter(function (t) { return t.inPip; }).length;
     }
 
     function mkDigit() {
@@ -1360,7 +1416,7 @@
       let y = 62;
       const rowH = 66;
 
-      timers.forEach(function (t) {
+      timers.filter(function (t) { return t.inPip; }).forEach(function (t) {
         const remain = remainingOf(t);
         const level = levelOf(t, remain);
         const p = splitTime(remain);
@@ -1431,11 +1487,11 @@
         return;
       }
       try {
+        // 담은 개수만큼 캔버스를 잡아 둡니다 — 스트림을 뜨기 전에 정해져야 합니다.
+        el.canvas.height = 72 + Math.max(1, pipCount()) * 66;
         startPipLoop();                 // 스트림을 잡기 전에 캔버스가 먼저 그려져 있어야 합니다
-        if (!pipStream) {
-          pipStream = el.canvas.captureStream(30);
-          el.video.srcObject = pipStream;
-        }
+        pipStream = el.canvas.captureStream(30);
+        el.video.srcObject = pipStream;
         await el.video.play();
         await el.video.requestPictureInPicture();
       } catch (err) {
@@ -1461,12 +1517,15 @@
     async function toggleDocPiP() {
       if (pipWindow) { pipWindow.close(); return; }   // 정리는 pagehide 에서 합니다
 
-      // 압축 배치 크기 = 여백10 + 툴바48 + 툴바아래5 + (카드44 + 사이3) × 타이머 수.
-      // 폭이 292 아래로 내려가면 툴바가 세 줄로 접히므로 300에서 시작합니다.
-      // 창은 열린 뒤 사용자가 자유롭게 늘리고 줄일 수 있습니다.
-      const size = pipCompact
-        ? { width: 300, height: 60 + MAX_TIMERS * 47 }
-        : { width: 420, height: 640 };
+      // 한 줄 배치에 필요한 폭 = 이름 + 남은시간 + 조절 6칸 + 재생 + 리셋.
+      // 이보다 좁히면 조절 버튼이 다음 줄로 접힙니다.
+      // 높이 = 여백 + 툴바 두 줄 + (담은 줄 50 · 뺀 줄 28) × 개수.
+      const shown = pipCount();
+      const hidden = timers.length - shown;
+      const size = {
+        width: 500,
+        height: Math.max(150, 20 + 70 + shown * 50 + hidden * 28)
+      };
 
       let win;
       try {
@@ -1482,7 +1541,6 @@
       doc.title = '유혹 타이머';
       copyStylesTo(doc);
       doc.body.classList.add('pip-mode');
-      applyPipCompact();
 
       // 완료 플래시·토스트를 PIP 창에도 띄우기 위한 영역
       const pf = doc.createElement('div'); pf.id = 'flash';
@@ -1540,20 +1598,6 @@
        툴바
        ========================================================== */
     el.pipBtn.addEventListener('click', togglePIP);
-
-    // 압축 배치 토글 — PIP 창 body 에 .compact 를 붙였다 뗍니다.
-    function applyPipCompact() {
-      if (pipWindow) pipWindow.document.body.classList.toggle('compact', pipCompact);
-      el.compactBtn.classList.toggle('on', pipCompact);
-      el.compactBtn.setAttribute('aria-pressed', String(pipCompact));
-      el.compactBtn.textContent = pipCompact ? '▤ 간단히' : '▦ 자세히';
-    }
-
-    el.compactBtn.addEventListener('click', function () {
-      pipCompact = !pipCompact;
-      applyPipCompact();
-      save();
-    });
 
     // PIP 창을 닫으면 그리기를 멈춥니다.
     el.video.addEventListener('leavepictureinpicture', function () {
@@ -1622,9 +1666,9 @@
       notifyOn = true;
     }
     syncNotifyBtn();
-    applyPipCompact();
 
     timers.forEach(function (t) { el.grid.appendChild(buildCard(t)); });
+    timers.forEach(applyPipPick);   // 카드가 만들어진 뒤라야 상태를 반영할 수 있습니다
 
     renderAll();
     setInterval(loop, 200);
