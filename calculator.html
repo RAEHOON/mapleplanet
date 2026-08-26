@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>메소 환율 계산기</title>
+  <meta name="description" content="택배·자유시장·경매장 시세를 비교해 메소를 가장 싸게 구하는 방법을 찾습니다. 캐시템은 현금 직구와 경매장 구매 중 어느 쪽이 싼지도 알려줍니다.">
+  <meta property="og:title" content="메소 환율 계산기">
+  <meta property="og:description" content="업자 시세를 비교해 메소를 가장 싸게 구하는 방법을 찾습니다.">
+  <meta name="theme-color" content="#150e26">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Do+Hyeon&family=Jua&display=swap" rel="stylesheet">
+  <style>
+    /* ============================================================
+       디자인 토큰 — 타이머·메인 페이지와 같은 값을 씁니다.
+       ============================================================ */
+    :root {
+      --bg-deep:      #100a1c;
+      --bg-mid:       #170f2b;
+      --panel:        #1d1533;
+      --panel-top:    #251b40;
+      --line:         #3a2d5c;
+      --line-soft:    #2c2246;
+
+      --ink:          #ece6ff;
+      --ink-dim:      #a498c8;
+      --ink-faint:    #6f6390;
+
+      --gold:         #ffc93c;
+      --gold-deep:    #e8a013;
+      --warn:         #ff9838;
+      --danger:       #ff4d4d;
+      --ok:           #55d98b;
+
+      /* 거래 경로별 색 */
+      --parcel:       #5eb0ff;   /* 업자 택배 */
+      --market:       #c58cff;   /* 자유시장 직거래 */
+      --auction:      #ffc93c;   /* 경매장 */
+      --cash:         #ff6b8a;   /* 캐시샵 */
+
+      --radius-lg:    18px;
+      --radius-md:    12px;
+      --radius-sm:    8px;
+
+      --shadow-panel: 0 6px 0 rgba(0,0,0,.35), 0 14px 30px rgba(0,0,0,.45);
+      --shadow-key:   0 4px 0 rgba(0,0,0,.45);
+
+      --font-display: 'Black Han Sans', 'Malgun Gothic', sans-serif;
+      --font-ui:      'Jua', 'Malgun Gothic', sans-serif;
+      --font-num:     'Do Hyeon', 'Malgun Gothic', monospace;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 28px 16px 64px;
+      font-family: var(--font-ui);
+      color: var(--ink);
+      background:
+        radial-gradient(1200px 600px at 50% -10%, #2a1c4d 0%, rgba(42,28,77,0) 60%),
+        radial-gradient(900px 500px at 100% 100%, #241640 0%, rgba(36,22,64,0) 55%),
+        linear-gradient(180deg, var(--bg-mid) 0%, var(--bg-deep) 100%);
+      background-attachment: fixed;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ============================================================
+       헤더
+       ============================================================ */
+    .home {
+      display: inline-block;
+      max-width: 1180px;
+      color: var(--ink-dim);
+      text-decoration: none;
+      font-size: .92rem;
+      padding: 6px 12px;
+      border: 2px solid var(--line);
+      border-radius: var(--radius-sm);
+      background: var(--panel);
+    }
+    .home:hover { color: var(--ink); border-color: var(--gold); }
+
+    header { text-align: center; margin: 18px 0 22px; }
+
+    h1 {
+      font-family: var(--font-display);
+      font-size: clamp(1.9rem, 6vw, 2.8rem);
+      letter-spacing: .02em;
+      margin: 0;
+      background: linear-gradient(180deg, #fff3c4 0%, var(--gold) 45%, var(--gold-deep) 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      filter: drop-shadow(0 3px 0 rgba(0,0,0,.5)) drop-shadow(0 0 18px rgba(255,201,60,.35));
+    }
+
+    .subtitle { color: var(--ink-dim); font-size: .98rem; margin: 8px 0 0; }
+
+    .wrap { max-width: 1180px; margin: 0 auto; }
+
+    /* ============================================================
+       카드 (입력 묶음)
+       ============================================================ */
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .card {
+      --accent: var(--gold);
+      background: linear-gradient(180deg, var(--panel-top) 0%, var(--panel) 100%);
+      border: 2px solid var(--line);
+      border-top: 4px solid var(--accent);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-panel);
+      padding: 16px 16px 18px;
+    }
+
+    .card h2 {
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      color: var(--accent);
+      margin: 0 0 4px;
+      letter-spacing: .01em;
+    }
+
+    .card .fee {
+      color: var(--ink-faint);
+      font-size: .8rem;
+      margin: 0 0 14px;
+    }
+
+    /* 라벨 + 입력 + 단위 한 줄 */
+    .field {
+      display: grid;
+      grid-template-columns: 1fr 108px auto;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 9px;
+    }
+    .field > label { color: var(--ink-dim); font-size: .9rem; }
+    .field > .unit  { color: var(--ink-faint); font-size: .82rem; min-width: 52px; }
+
+    input[type="text"] {
+      font-family: var(--font-num);
+      font-size: 1rem;
+      text-align: right;
+      color: var(--ink);
+      background: #150e26;
+      border: 2px solid var(--line);
+      border-radius: var(--radius-sm);
+      padding: 7px 9px;
+      width: 100%;
+      -webkit-tap-highlight-color: transparent;
+    }
+    input[type="text"]:focus {
+      outline: none;
+      border-color: var(--accent, var(--gold));
+      background: #1b1230;
+    }
+    input.bad { border-color: var(--danger); }
+
+    .note {
+      color: var(--ok);
+      font-size: .86rem;
+      margin: 10px 0 0;
+      min-height: 1.2em;
+      font-family: var(--font-num);
+    }
+
+    /* ============================================================
+       버튼
+       ============================================================ */
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 0 0 18px;
+    }
+
+    .btn {
+      font-family: var(--font-ui);
+      font-size: .95rem;
+      color: var(--ink);
+      background: linear-gradient(180deg, var(--panel-top), var(--panel));
+      border: 2px solid var(--line);
+      border-radius: var(--radius-md);
+      padding: 9px 15px;
+      cursor: pointer;
+      box-shadow: var(--shadow-key);
+      transition: transform .08s, box-shadow .08s, border-color .15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn:hover { border-color: var(--gold); }
+    .btn:active { transform: translateY(2px); box-shadow: 0 2px 0 rgba(0,0,0,.45); }
+    .btn.primary { border-color: var(--gold-deep); color: var(--gold); }
+
+    /* ============================================================
+       아이템 표
+       ============================================================ */
+    .panel {
+      background: linear-gradient(180deg, var(--panel-top) 0%, var(--panel) 100%);
+      border: 2px solid var(--line);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-panel);
+      padding: 16px;
+      margin-bottom: 18px;
+    }
+
+    .panel > h2 {
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      color: var(--gold);
+      margin: 0 0 4px;
+    }
+    .panel > .hint { color: var(--ink-faint); font-size: .82rem; margin: 0 0 14px; line-height: 1.6; }
+
+    .table-scroll { overflow-x: auto; }
+
+    table { border-collapse: collapse; width: 100%; min-width: 760px; }
+
+    th {
+      font-weight: normal;
+      color: var(--ink-faint);
+      font-size: .8rem;
+      text-align: right;
+      padding: 0 8px 8px;
+      border-bottom: 2px solid var(--line-soft);
+      white-space: nowrap;
+    }
+    th:first-child { text-align: left; }
+
+    td { padding: 5px 8px; border-bottom: 1px solid var(--line-soft); }
+    td input[type="text"] { min-width: 82px; }
+    td input.name { text-align: left; font-family: var(--font-ui); min-width: 120px; }
+
+    .del {
+      background: none;
+      border: none;
+      color: var(--ink-faint);
+      font-size: 1.1rem;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: var(--radius-sm);
+    }
+    .del:hover { color: var(--danger); background: rgba(255,77,77,.12); }
+
+    .empty { color: var(--ink-faint); font-size: .9rem; padding: 14px 8px; text-align: center; }
+
+    /* ============================================================
+       결과
+       ============================================================ */
+    #out .section { margin-bottom: 22px; }
+    #out .section:last-child { margin-bottom: 0; }
+
+    #out h3 {
+      font-family: var(--font-display);
+      font-size: 1rem;
+      color: var(--ink);
+      margin: 0 0 4px;
+      padding-bottom: 6px;
+      border-bottom: 2px solid var(--line);
+      letter-spacing: .01em;
+    }
+    #out h3 .sub { font-family: var(--font-ui); color: var(--ink-faint); font-size: .78rem; margin-left: 8px; }
+    #out .r .sub { color: var(--ink-faint); font-size: .82rem; }
+
+    .r {
+      display: grid;
+      gap: 4px 14px;
+      padding: 7px 6px;
+      border-bottom: 1px solid var(--line-soft);
+      font-family: var(--font-num);
+      font-size: .95rem;
+      align-items: baseline;
+    }
+    .r:last-child { border-bottom: none; }
+    .r .lbl { font-family: var(--font-ui); color: var(--ink-dim); font-size: .88rem; }
+    .r .num { text-align: right; }
+    .r.best { color: var(--ok); }
+    .r.best .lbl { color: var(--ok); }
+    .r.bad  { color: var(--danger); }
+    .r.dim  { color: var(--ink-faint); font-size: .86rem; }
+
+    /* 환율 순위: 순위 · 경로 · 환율 · 100만당 */
+    .r.rank { grid-template-columns: 42px 1fr 150px 160px; }
+    /* 큐브 원가: 경로 · 단가 · 메소 환산 */
+    .r.cube { grid-template-columns: 1fr 130px 220px; }
+    /* 캐시템 비교: 이름 · 현금직구 · 경매장 · 유리 · 차액 */
+    .r.cmp  { grid-template-columns: 1fr 130px 190px 90px 130px; }
+    /* 일반 두 칸 */
+    .r.kv   { grid-template-columns: 120px 1fr; }
+
+    .tag {
+      font-family: var(--font-ui);
+      font-size: .74rem;
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid currentColor;
+      white-space: nowrap;
+    }
+
+    .star { color: var(--gold); }
+
+    .error { color: var(--danger); font-family: var(--font-ui); padding: 10px 6px; }
+
+    footer {
+      text-align: center;
+      color: var(--ink-faint);
+      font-size: .8rem;
+      margin-top: 44px;
+      line-height: 1.7;
+    }
+
+    /* 좁은 화면에서는 결과 행을 두 줄로 접습니다. */
+    @media (max-width: 700px) {
+      .r.rank { grid-template-columns: 42px 1fr; }
+      .r.rank .num { grid-column: 2; text-align: left; }
+      .r.cube { grid-template-columns: 1fr; }
+      .r.cube .num { text-align: left; }
+      .r.cmp  { grid-template-columns: 1fr 1fr; }
+      .r.cmp .num { text-align: left; }
+      /* 칸이 접히면 머리글 줄이 오히려 헷갈립니다 */
+      .r.cmp.hdr { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="wrap">
+    <a class="home" href="index.html">← 도구모음</a>
+
+    <header>
+      <h1>메소 환율 계산기</h1>
+      <p class="subtitle">업자 시세를 비교해 메소를 가장 싸게 구하는 방법을 찾습니다</p>
+    </header>
+
+    <!-- ========================================================
+         입력
+         ======================================================== -->
+    <div class="cards">
+
+      <div class="card" style="--accent: var(--parcel);">
+        <h2>업자 택배 거래</h2>
+        <p class="fee">수수료 없음</p>
+        <div class="field">
+          <label for="parcel1M">100만메소당</label>
+          <input type="text" id="parcel1M" inputmode="decimal">
+          <span class="unit">원</span>
+        </div>
+        <div class="field">
+          <label for="parcelRate">환율 1 :</label>
+          <input type="text" id="parcelRate" inputmode="decimal">
+          <span class="unit">메소</span>
+        </div>
+        <div class="field">
+          <label for="parcelCube">업자 큐브 가격</label>
+          <input type="text" id="parcelCube" inputmode="decimal">
+          <span class="unit">원/개</span>
+        </div>
+      </div>
+
+      <div class="card" style="--accent: var(--market);">
+        <h2>자유시장 직거래</h2>
+        <p class="fee">수수료 6%</p>
+        <div class="field">
+          <label for="fm1M">100만메소당 (명목)</label>
+          <input type="text" id="fm1M" inputmode="decimal">
+          <span class="unit">원</span>
+        </div>
+        <div class="field">
+          <label for="fmRate">명목 환율 1 :</label>
+          <input type="text" id="fmRate" inputmode="decimal">
+          <span class="unit">메소</span>
+        </div>
+        <p class="note" id="fmEff"></p>
+      </div>
+
+      <div class="card" style="--accent: var(--auction);">
+        <h2>경매장</h2>
+        <p class="fee">판매 수수료 10% · 구매는 수수료 없음</p>
+        <div class="field">
+          <label for="auction">큐브 시세</label>
+          <input type="text" id="auction" inputmode="decimal">
+          <span class="unit">메소/개</span>
+        </div>
+        <div class="field">
+          <label for="qty">계산할 큐브 수량</label>
+          <input type="text" id="qty" inputmode="decimal">
+          <span class="unit">개</span>
+        </div>
+      </div>
+
+      <div class="card" style="--accent: var(--cash);">
+        <h2>캐시샵 큐브</h2>
+        <p class="fee">낱개와 묶음 중 싼 쪽을 자동으로 씁니다</p>
+        <div class="field">
+          <label for="cash1">낱개 가격</label>
+          <input type="text" id="cash1" inputmode="decimal">
+          <span class="unit">원/개</span>
+        </div>
+        <div class="field">
+          <label for="cashN">묶음 가격</label>
+          <input type="text" id="cashN" inputmode="decimal">
+          <span class="unit">원</span>
+        </div>
+        <div class="field">
+          <label for="cashNQty">묶음 수량</label>
+          <input type="text" id="cashNQty" inputmode="decimal">
+          <span class="unit">개</span>
+        </div>
+        <p class="note" id="cashUnit"></p>
+      </div>
+
+    </div>
+
+    <!-- ========================================================
+         아이템
+         ======================================================== -->
+    <div class="panel">
+      <h2>캐시 아이템</h2>
+      <p class="hint">
+        캐시로 사는 아이템의 가격과 경매장 시세를 넣으면 두 가지를 함께 계산합니다 —
+        <b>되팔아 메소를 벌 때</b>의 환율과, <b>직접 쓰려고 구할 때</b> 현금 직구와 경매장 구매 중 어느 쪽이 싼지.<br>
+        낱개가와 묶음가를 모두 넣으면 개당 싼 쪽을 자동으로 고릅니다. 빈 칸은 0으로 봅니다.
+      </p>
+
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>이름</th>
+              <th>낱개가 (원)</th>
+              <th>묶음가 (원)</th>
+              <th>묶음 수량</th>
+              <th>경매장 시세 (메소)</th>
+              <th>개수</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="items"></tbody>
+        </table>
+      </div>
+
+      <div class="toolbar" style="margin: 14px 0 0;">
+        <button class="btn primary" id="add">＋ 줄 추가</button>
+        <button class="btn" id="clear">전체 삭제</button>
+      </div>
+    </div>
+
+    <!-- ========================================================
+         결과
+         ======================================================== -->
+    <div class="panel">
+      <h2>결과</h2>
+      <div id="out"></div>
+    </div>
+
+    <div class="toolbar">
+      <button class="btn" id="copy">결과 복사</button>
+      <button class="btn" id="reset">기본값으로</button>
+    </div>
+
+    <footer>
+      입력값은 이 브라우저에 저장되어 새로고침해도 유지됩니다.<br>
+      이 페이지는 넥슨코리아와 무관한 비공식 팬 페이지입니다.
+    </footer>
+  </div>
+
+  <script>
+  (function () {
+    'use strict';
+
+    /* ==========================================================
+       고정 수수료
+       ========================================================== */
+    const FEE_AUCTION = 0.10;   // 경매장 판매 수수료
+    const FEE_FM      = 0.06;   // 자유시장 직거래 수수료
+
+    const STORE_KEY = 'meso-calc-v1';
+
+    const DEFAULTS = {
+      parcel1M:  '700',
+      parcelCube:'350',
+      fm1M:      '650',
+      auction:   '650000',
+      qty:       '100',
+      cash1:     '450',
+      cashN:     '4500',
+      cashNQty:  '11',
+      items:     []
+    };
+
+    /* ==========================================================
+       숫자 도우미
+       ========================================================== */
+    const $ = function (id) { return document.getElementById(id); };
+
+    function fmt(v, digits) {
+      return v.toLocaleString('ko-KR', {
+        minimumFractionDigits: digits || 0,
+        maximumFractionDigits: digits || 0
+      });
+    }
+
+    // 소수점은 필요한 만큼만 (최대 2자리)
+    function loose(v) {
+      return v.toLocaleString('ko-KR', { maximumFractionDigits: 2 });
+    }
+
+    function won(v) { return fmt(Math.round(v)) + '원'; }
+
+    // 짧게 — 억/만 단위로만 (괄호 없이)
+    function mesoShort(v) {
+      const a = Math.abs(v);
+      if (a >= 1e8) return loose(v / 1e8) + '억메소';
+      if (a >= 1e4) return loose(v / 1e4) + '만메소';
+      return fmt(Math.round(v)) + '메소';
+    }
+
+    // 큰 메소는 억/만 단위를 괄호로 덧붙입니다.
+    function meso(v) {
+      const s = fmt(Math.round(v)) + '메소';
+      const a = Math.abs(v);
+      if (a >= 1e8) return s + ' (' + loose(v / 1e8) + '억)';
+      if (a >= 1e4) return s + ' (' + loose(v / 1e4) + '만)';
+      return s;
+    }
+
+    // 입력칸을 숫자로 읽습니다. 쉼표와 공백은 무시합니다.
+    function num(el) {
+      const raw = el.value.replace(/[,\s]/g, '');
+      if (raw === '') return 0;
+      const v = Number(raw);
+      return isFinite(v) ? v : NaN;
+    }
+
+    /* ==========================================================
+       입력 상태
+       ========================================================== */
+    const NUM_IDS = ['parcel1M', 'parcelRate', 'parcelCube',
+                     'fm1M', 'fmRate', 'auction', 'qty',
+                     'cash1', 'cashN', 'cashNQty'];
+
+    let syncing = false;   // 100만메소당 ↔ 환율 상호 갱신 중 재진입 방지
+
+    /* ==========================================================
+       아이템 표
+       ========================================================== */
+    const COLS = [
+      { key: 'name',       cls: 'name', ph: '아이템 이름' },
+      { key: 'cash',       cls: '',     ph: '0' },
+      { key: 'bundle',     cls: '',     ph: '0' },
+      { key: 'bundleQty',  cls: '',     ph: '0' },
+      { key: 'price',      cls: '',     ph: '0' },
+      { key: 'qty',        cls: '',     ph: '1' }
+    ];
+
+    function addRow(data) {
+      const d = data || {};
+      const tr = document.createElement('tr');
+
+      COLS.forEach(function (c) {
+        const td = document.createElement('td');
+        const inp = document.createElement('input');
+        inp.type = 'text';
+        inp.className = c.cls;
+        inp.dataset.key = c.key;
+        inp.placeholder = c.ph;
+        if (c.key !== 'name') inp.inputMode = 'decimal';
+        inp.value = d[c.key] !== undefined ? d[c.key] : '';
+        inp.addEventListener('input', onAny);
+        td.appendChild(inp);
+        tr.appendChild(td);
+      });
+
+      const td = document.createElement('td');
+      const del = document.createElement('button');
+      del.className = 'del';
+      del.type = 'button';
+      del.title = '이 줄 삭제';
+      del.textContent = '✕';
+      del.addEventListener('click', function () { tr.remove(); onAny(); });
+      td.appendChild(del);
+      tr.appendChild(td);
+
+      $('items').appendChild(tr);
+    }
+
+    // 표를 읽어 아이템 객체 목록으로 바꿉니다. 아무것도 안 넣은 줄은 건너뜁니다.
+    function readItems() {
+      const rows = Array.prototype.slice.call($('items').querySelectorAll('tr'));
+      const out = [];
+
+      rows.forEach(function (tr) {
+        const o = {};
+        tr.querySelectorAll('input').forEach(function (inp) {
+          o[inp.dataset.key] = inp.value;
+        });
+
+        const blank = COLS.every(function (c) {
+          return !(o[c.key] || '').trim();
+        });
+        if (blank) return;
+
+        const it = {
+          name:      (o.name || '').trim() || '(이름 없음)',
+          cash:      Number((o.cash || '0').replace(/[,\s]/g, '')) || 0,
+          bundle:    Number((o.bundle || '0').replace(/[,\s]/g, '')) || 0,
+          bundleQty: Math.round(Number((o.bundleQty || '0').replace(/[,\s]/g, '')) || 0),
+          price:     Number((o.price || '0').replace(/[,\s]/g, '')) || 0,
+          qty:       Math.round(Number((o.qty || '0').replace(/[,\s]/g, '')) || 0),
+          raw:       o
+        };
+
+        it.hasSingle = it.cash > 0;
+        it.hasBundle = it.bundle > 0 && it.bundleQty >= 1;
+        it.hasCash   = it.hasSingle || it.hasBundle;
+
+        // 낱개와 묶음 중 개당 싼 쪽
+        let unit = Infinity;
+        if (it.hasSingle) unit = it.cash;
+        if (it.hasBundle) unit = Math.min(unit, it.bundle / it.bundleQty);
+        it.unitCost = it.hasCash ? unit : 0;
+
+        if (it.qty < 1) it.qty = 1;
+
+        it.cashTotal = it.unitCost * it.qty;          // 현금 총액
+        it.gross     = it.price * it.qty;             // 판매 총액 (수수료 전)
+        it.net       = it.gross * (1 - FEE_AUCTION);  // 경매장 실수령
+        it.rate      = it.cashTotal > 0 ? it.net / it.cashTotal : 0;   // 되팔기 환율
+
+        it.buyPlan = !it.hasCash ? '-'
+          : (it.hasBundle && (!it.hasSingle || it.bundle / it.bundleQty <= it.cash))
+            ? '묶음 ' + fmt(it.bundle) + '원 / ' + it.bundleQty + '개'
+            : '낱개 ' + fmt(it.cash) + '원';
+
+        out.push(it);
+      });
+
+      return out;
+    }
+
+    /* ==========================================================
+       계산
+       ========================================================== */
+    function compute() {
+      const v = {};
+      let bad = false;
+
+      NUM_IDS.forEach(function (id) {
+        const n = num($(id));
+        if (isNaN(n)) { bad = true; $(id).classList.add('bad'); }
+        else { $(id).classList.remove('bad'); }
+        v[id] = n;
+      });
+
+      if (bad) return { error: '숫자가 아닌 값이 들어간 칸이 있습니다.' };
+
+      if (!(v.parcel1M > 0 && v.fm1M > 0 && v.auction > 0 && v.parcelCube > 0)) {
+        return { error: '시세 · 가격 항목은 0보다 커야 합니다.' };
+      }
+
+      // 캐시샵 큐브 개당 단가 — 낱개와 묶음 중 싼 쪽
+      let cashUnit = Infinity;
+      if (v.cash1 > 0) cashUnit = v.cash1;
+      if (v.cashN > 0 && v.cashNQty >= 1) cashUnit = Math.min(cashUnit, v.cashN / v.cashNQty);
+      if (!isFinite(cashUnit)) return { error: '캐시샵 큐브 가격을 넣어 주세요.' };
+
+      const r = {};
+      r.cashUnit   = cashUnit;
+      r.n          = Math.max(1, Math.round(v.qty));
+      r.parcelCube = v.parcelCube;
+      r.auction    = v.auction;
+
+      // 환율은 모두 "1원당 몇 메소"
+      r.parcelRate = 1e6 / v.parcel1M;
+      r.fmNominal  = 1e6 / v.fm1M;
+      r.fmEff      = r.fmNominal * (1 - FEE_FM);
+      r.fmEff1M    = 1e6 / r.fmEff;
+
+      r.auctionNet = v.auction * (1 - FEE_AUCTION);   // 큐브 1개를 경매장에 팔았을 때 실수령
+      r.cubeResale = r.auctionNet / cashUnit;         // 캐시 큐브 되팔기 환율
+
+      r.items = readItems();
+
+      // ---- 메소 환율 순위 (100만메소당 원가가 싼 순) ----
+      const routes = [
+        { name: '업자 택배',      rate: r.parcelRate },
+        { name: '자유시장 직거래', rate: r.fmEff },
+        { name: '큐브 되팔기',    rate: r.cubeResale }
+      ];
+      r.items.forEach(function (it) {
+        if (it.hasCash && it.rate > 0) {
+          routes.push({ name: '[템] ' + it.name, rate: it.rate, isItem: true });
+        }
+      });
+      routes.forEach(function (x) { x.cost1M = 1e6 / x.rate; });
+      routes.sort(function (a, b) { return a.cost1M - b.cost1M; });
+
+      r.routes = routes;
+      r.best   = routes[0];
+
+      // ---- 큐브 원가 (환율 1위 기준으로 메소 환산) ----
+      r.cubeParcel  = v.parcelCube * r.best.rate;
+      r.cubeCash    = cashUnit * r.best.rate;
+      r.cubeAuction = v.auction;
+      r.cubeMin     = Math.min(r.cubeParcel, r.cubeCash, r.cubeAuction);
+
+      // ---- 손익분기 ----
+      // 되팔기를 뺀, 실제로 메소를 조달하는 두 경로 중 좋은 쪽
+      r.buyRate  = Math.max(r.parcelRate, r.fmEff);
+      r.buyName  = r.fmEff > r.parcelRate ? '자유시장' : '택배';
+      r.breakeven = cashUnit * r.buyRate / (1 - FEE_AUCTION);
+      r.cashWins  = v.auction >= r.breakeven;
+
+      // ---- 아이템 정산 (되팔기 관점) ----
+      const paid = r.items.filter(function (it) { return it.hasCash && it.price > 0; });
+      r.paid = paid;
+      r.sumNet   = r.items.reduce(function (s, it) { return s + it.net; }, 0);
+      r.sumCash  = paid.reduce(function (s, it) { return s + it.cashTotal; }, 0);
+      r.sumNetC  = paid.reduce(function (s, it) { return s + it.net; }, 0);
+      r.itemRate = r.sumCash > 0 ? r.sumNetC / r.sumCash : 0;
+
+      // ---- 캐시템 구매 비교 (소비 관점) ----
+      // 경매장에서 메소로 살 때, 그 메소를 구하는 데 드는 현금과 비교합니다.
+      // 경매장은 구매 시 수수료가 없습니다 (판매자가 10%를 부담).
+      r.cmp = paid.map(function (it) {
+        const direct    = it.cashTotal;              // 현금으로 바로 살 때
+        const needMeso  = it.price * it.qty;         // 경매장에서 사려면 필요한 메소
+        const viaAuction = needMeso / r.best.rate;   // 그 메소의 현금 환산값
+        return {
+          name:      it.name,
+          qty:       it.qty,
+          direct:    direct,
+          needMeso:  needMeso,
+          viaAuction: viaAuction,
+          save:      direct - viaAuction,            // 양수면 경매장이 이득
+          bepPrice:  it.unitCost * r.best.rate,      // 개당 경매장 시세 분기점
+          bepRate:   it.unitCost > 0 ? it.price / it.unitCost : 0  // 필요한 최소 환율
+        };
+      });
+      r.cmpDirect = r.cmp.reduce(function (s, c) { return s + c.direct; }, 0);
+      r.cmpVia    = r.cmp.reduce(function (s, c) { return s + c.viaAuction; }, 0);
+
+      return r;
+    }
+
+    /* ==========================================================
+       결과 그리기
+       ========================================================== */
+    function row(cls, parts) {
+      const div = document.createElement('div');
+      div.className = 'r ' + cls;
+      parts.forEach(function (p) {
+        const span = document.createElement('span');
+        span.className = p.cls || 'num';
+        span.innerHTML = p.html !== undefined ? p.html : String(p.text);
+        div.appendChild(span);
+      });
+      return div;
+    }
+
+    function section(title, sub) {
+      const s = document.createElement('div');
+      s.className = 'section';
+      const h = document.createElement('h3');
+      h.textContent = title;
+      if (sub) {
+        const em = document.createElement('span');
+        em.className = 'sub';
+        em.textContent = sub;
+        h.appendChild(em);
+      }
+      s.appendChild(h);
+      return s;
+    }
+
+    function render() {
+      const out = $('out');
+      out.innerHTML = '';
+
+      const r = compute();
+
+      if (r.error) {
+        $('fmEff').textContent = '';
+        $('cashUnit').textContent = '';
+        const p = document.createElement('p');
+        p.className = 'error';
+        p.textContent = r.error;
+        out.appendChild(p);
+        return;
+      }
+
+      $('fmEff').textContent =
+        '실효 환율  1 : ' + fmt(r.fmEff, 1) + '   (실수령 100만당 ' + won(r.fmEff1M) + ')';
+      $('cashUnit').textContent =
+        '개당 ' + fmt(r.cashUnit, 1) + '원';
+
+      /* ---- 메소 환율 순위 ---- */
+      let s = section('메소 환율 순위', '100만메소를 가장 싸게 구하는 순서');
+      r.routes.forEach(function (x, i) {
+        const best = i === 0;
+        s.appendChild(row('rank' + (best ? ' best' : ''), [
+          { cls: 'lbl', text: (i + 1) + '위' },
+          { cls: 'lbl', html: x.name + (best ? ' <span class="star">★</span>' : '') },
+          { text: '1 : ' + fmt(x.rate, 1) },
+          { text: '100만당 ' + won(x.cost1M) }
+        ]));
+      });
+      out.appendChild(s);
+
+      /* ---- 큐브 원가 ---- */
+      s = section('큐브 원가', '환율 1위(' + r.best.name + ') 기준으로 메소 환산');
+      [
+        { name: '업자 큐브',     price: won(r.parcelCube),               val: r.cubeParcel },
+        { name: '캐시샵 큐브',   price: fmt(r.cashUnit, 1) + '원',        val: r.cubeCash },
+        { name: '경매장 직구매', price: '-',                              val: r.cubeAuction }
+      ].forEach(function (c) {
+        const best = c.val === r.cubeMin;
+        s.appendChild(row('cube' + (best ? ' best' : ''), [
+          { cls: 'lbl', html: c.name + (best ? ' <span class="star">★</span>' : '') },
+          { text: c.price },
+          { text: '= ' + meso(c.val) }
+        ]));
+      });
+      s.appendChild(row('dim kv', [
+        { cls: 'lbl', text: fmt(r.n) + '개 기준' },
+        { text: '업자 ' + won(r.parcelCube * r.n) +
+                ' · 캐시샵 ' + won(r.cashUnit * r.n) +
+                ' · 경매장 ' + meso(r.auction * r.n) }
+      ]));
+      out.appendChild(s);
+
+      /* ---- 손익분기 ---- */
+      s = section('손익분기', '캐시샵 큐브를 사서 경매장에 팔 가치가 있는가');
+      s.appendChild(row('kv', [
+        { cls: 'lbl', text: '분기점' },
+        { text: meso(r.breakeven) + ' 이상이면 캐시샵 큐브가 유리' }
+      ]));
+      s.appendChild(row('kv ' + (r.cashWins ? 'best' : 'bad'), [
+        { cls: 'lbl', text: '현재 시세' },
+        { text: meso(r.auction) + '  →  ' + (r.cashWins ? '캐시샵 큐브 이득' : r.buyName + ' 이득') }
+      ]));
+      out.appendChild(s);
+
+      /* ---- 아이템 정산 (되팔기) ---- */
+      if (r.items.length > 0) {
+        s = section('아이템 되팔기 정산', r.items.length + '종 · 경매장에 팔아 메소를 벌 때');
+        let line = '실수령 ' + meso(r.sumNet);
+        if (r.sumCash > 0) {
+          line += '   ·   현금 ' + won(r.sumCash) +
+                  '  →  1 : ' + fmt(r.itemRate, 1) +
+                  ' (100만당 ' + won(1e6 / r.itemRate) + ')';
+        }
+        s.appendChild(row('kv best', [{ cls: 'lbl', text: '합계' }, { text: line }]));
+
+        r.paid.forEach(function (it) {
+          s.appendChild(row('dim kv', [
+            { cls: 'lbl', text: it.name },
+            { text: it.buyPlan + '   ·   개당 ' + fmt(it.unitCost, 1) + '원   ·   ' +
+                    fmt(it.qty) + '개 = ' + won(it.cashTotal) +
+                    '   →   1 : ' + fmt(it.rate, 1) }
+          ]));
+        });
+        out.appendChild(s);
+      }
+
+      /* ---- 캐시템 구매 비교 (소비) ---- */
+      if (r.cmp.length > 0) {
+        s = section('캐시템 구매 비교', '직접 쓰려고 구할 때 · 기준 환율 1 : ' + fmt(r.best.rate, 1) + ' (' + r.best.name + ')');
+
+        s.appendChild(row('cmp dim hdr', [
+          { cls: 'lbl', text: '아이템' },
+          { text: '현금 직접' },
+          { text: '경매장 (현금 환산)' },
+          { text: '유리' },
+          { text: '차액' }
+        ]));
+
+        r.cmp.forEach(function (c) {
+          const aucWins = c.save > 0;
+          s.appendChild(row('cmp ' + (aucWins ? 'best' : ''), [
+            { cls: 'lbl', text: c.name + ' ×' + fmt(c.qty) },
+            { text: won(c.direct) },
+            { text: won(c.viaAuction) + ' <span class="sub">· ' + mesoShort(c.needMeso) + '</span>' },
+            { html: '<span class="tag">' + (aucWins ? '경매장' : '현금') + '</span>' },
+            { text: won(Math.abs(c.save)) + ' 절약' }
+          ]));
+        });
+
+        const totalAucWins = r.cmpDirect - r.cmpVia > 0;
+        s.appendChild(row('cmp ' + (totalAucWins ? 'best' : 'bad'), [
+          { cls: 'lbl', text: '합계' },
+          { text: won(r.cmpDirect) },
+          { text: won(r.cmpVia) },
+          { html: '<span class="tag">' + (totalAucWins ? '경매장' : '현금') + '</span>' },
+          { text: won(Math.abs(r.cmpDirect - r.cmpVia)) + ' 절약' }
+        ]));
+
+        r.cmp.forEach(function (c) {
+          s.appendChild(row('dim kv', [
+            { cls: 'lbl', text: c.name + ' 분기점' },
+            { text: '경매장 시세가 ' + meso(c.bepPrice) + ' 이하이면 경매장이 유리' +
+                    '   ·   내 환율이 1 : ' + fmt(c.bepRate, 1) + ' 이상이면 경매장이 유리' }
+          ]));
+        });
+
+        out.appendChild(s);
+      }
+    }
+
+    /* ==========================================================
+       입력 동기화 · 저장
+       ========================================================== */
+    // 100만메소당 ↔ 환율(1원당 메소) 는 서로의 역수 관계입니다.
+    function sync(srcId, dstId) {
+      if (syncing) return;
+      const v = num($(srcId));
+      if (!isNaN(v) && v > 0) {
+        syncing = true;
+        $(dstId).value = loose(1e6 / v);
+        syncing = false;
+      }
+      onAny();
+    }
+
+    function onAny() {
+      render();
+      save();
+    }
+
+    function save() {
+      try {
+        const data = {};
+        NUM_IDS.forEach(function (id) { data[id] = $(id).value; });
+        data.items = Array.prototype.slice.call($('items').querySelectorAll('tr')).map(function (tr) {
+          const o = {};
+          tr.querySelectorAll('input').forEach(function (inp) { o[inp.dataset.key] = inp.value; });
+          return o;
+        });
+        localStorage.setItem(STORE_KEY, JSON.stringify(data));
+      } catch (e) { /* 저장 못 해도 계산은 계속됩니다 */ }
+    }
+
+    function load() {
+      let data = null;
+      try {
+        const raw = localStorage.getItem(STORE_KEY);
+        if (raw) data = JSON.parse(raw);
+      } catch (e) { data = null; }
+
+      applyDefaults();
+
+      if (data) {
+        NUM_IDS.forEach(function (id) {
+          if (typeof data[id] === 'string' && data[id] !== '') $(id).value = data[id];
+        });
+        if (Array.isArray(data.items)) {
+          $('items').innerHTML = '';
+          data.items.forEach(addRow);
+        }
+      }
+      if (!$('items').querySelector('tr')) addRow();
+    }
+
+    function applyDefaults() {
+      $('parcel1M').value   = DEFAULTS.parcel1M;
+      $('parcelCube').value = DEFAULTS.parcelCube;
+      $('fm1M').value       = DEFAULTS.fm1M;
+      $('auction').value    = DEFAULTS.auction;
+      $('qty').value        = DEFAULTS.qty;
+      $('cash1').value      = DEFAULTS.cash1;
+      $('cashN').value      = DEFAULTS.cashN;
+      $('cashNQty').value   = DEFAULTS.cashNQty;
+
+      syncing = true;
+      $('parcelRate').value = loose(1e6 / Number(DEFAULTS.parcel1M));
+      $('fmRate').value     = loose(1e6 / Number(DEFAULTS.fm1M));
+      syncing = false;
+    }
+
+    /* ==========================================================
+       결과 복사
+       ========================================================== */
+    function copyText() {
+      const lines = [];
+      $('out').querySelectorAll('.section').forEach(function (sec) {
+        lines.push('■ ' + sec.querySelector('h3').textContent);
+        sec.querySelectorAll('.r').forEach(function (rw) {
+          const cells = Array.prototype.map.call(rw.children, function (c) {
+            return c.textContent.trim();
+          }).filter(function (t) { return t !== ''; });
+          lines.push('  ' + cells.join('   '));
+        });
+        lines.push('');
+      });
+      const text = lines.join('\n');
+
+      const done = function () {
+        const btn = $('copy');
+        const old = btn.textContent;
+        btn.textContent = '복사했습니다';
+        setTimeout(function () { btn.textContent = old; }, 1400);
+      };
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done, function () {});
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } catch (e) {}
+        ta.remove();
+      }
+    }
+
+    /* ==========================================================
+       초기화
+       ========================================================== */
+    $('parcel1M').addEventListener('input',   function () { sync('parcel1M', 'parcelRate'); });
+    $('parcelRate').addEventListener('input', function () { sync('parcelRate', 'parcel1M'); });
+    $('fm1M').addEventListener('input',       function () { sync('fm1M', 'fmRate'); });
+    $('fmRate').addEventListener('input',     function () { sync('fmRate', 'fm1M'); });
+
+    ['parcelCube', 'auction', 'qty', 'cash1', 'cashN', 'cashNQty'].forEach(function (id) {
+      $(id).addEventListener('input', onAny);
+    });
+
+    $('add').addEventListener('click', function () { addRow(); onAny(); });
+    $('clear').addEventListener('click', function () {
+      $('items').innerHTML = '';
+      addRow();
+      onAny();
+    });
+    $('copy').addEventListener('click', copyText);
+    $('reset').addEventListener('click', function () {
+      applyDefaults();
+      $('items').innerHTML = '';
+      addRow();
+      onAny();
+    });
+
+    load();
+    render();
+  })();
+  </script>
+
+</body>
+</html>
