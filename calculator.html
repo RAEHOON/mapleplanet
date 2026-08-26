@@ -7,318 +7,403 @@
   <meta name="description" content="택배·자유시장·경매장 시세를 비교해 메소를 가장 싸게 구하는 방법을 찾습니다. 캐시템은 현금 직구와 경매장 구매 중 어느 쪽이 싼지도 알려줍니다.">
   <meta property="og:title" content="메소 환율 계산기">
   <meta property="og:description" content="업자 시세를 비교해 메소를 가장 싸게 구하는 방법을 찾습니다.">
-  <meta name="theme-color" content="#150e26">
+  <meta name="theme-color" content="#ddcfb0">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Do+Hyeon&family=Jua&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700;800&family=Bitter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     /* ============================================================
-       디자인 토큰 — 타이머·메인 페이지와 같은 값을 씁니다.
+       디자인 토큰 — 양피지에 먹색. 모서리는 전부 각지게(라운드 0).
        ============================================================ */
     :root {
-      --bg-deep:      #100a1c;
-      --bg-mid:       #170f2b;
-      --panel:        #1d1533;
-      --panel-top:    #251b40;
-      --line:         #3a2d5c;
-      --line-soft:    #2c2246;
+      --paper-deep: #ddcfb0;   /* 지면 바탕 */
+      --paper:      #f7f1e2;   /* 카드·패널 */
+      --paper-in:   #fffcf4;   /* 입력칸 */
+      --paper-band: #ece0c6;   /* 강조 행 */
+      --paper-warm: #efe3cb;   /* 보조 상자 */
 
-      --ink:          #ece6ff;
-      --ink-dim:      #a498c8;
-      --ink-faint:    #6f6390;
+      --ink:        #201a13;
+      --ink-mid:    #514536;
+      --ink-soft:   #6b5f4d;
+      --ink-faint:  #9a8e79;
 
-      --gold:         #ffc93c;
-      --gold-deep:    #e8a013;
-      --warn:         #ff9838;
-      --danger:       #ff4d4d;
-      --ok:           #55d98b;
+      --rule:       #c3b08c;   /* 가는 괘선 */
+
+      --seal:       #8f2f22;   /* 인장 붉은색 */
+      --seal-bg:    #f0dfd9;
 
       /* 거래 경로별 색 */
-      --parcel:       #5eb0ff;   /* 업자 택배 */
-      --market:       #c58cff;   /* 자유시장 직거래 */
-      --auction:      #ffc93c;   /* 경매장 */
-      --cash:         #ff6b8a;   /* 캐시샵 */
+      --parcel:     #23404f;
+      --market:     #6b4a2b;
+      --auction:    #8a6a1f;
+      --cash:       #8f2f22;
 
-      --radius-lg:    18px;
-      --radius-md:    12px;
-      --radius-sm:    8px;
-
-      --shadow-panel: 0 6px 0 rgba(0,0,0,.35), 0 14px 30px rgba(0,0,0,.45);
-      --shadow-key:   0 4px 0 rgba(0,0,0,.45);
-
-      --font-display: 'Black Han Sans', 'Malgun Gothic', sans-serif;
-      --font-ui:      'Jua', 'Malgun Gothic', sans-serif;
-      --font-num:     'Do Hyeon', 'Malgun Gothic', monospace;
+      --font-ui:    'Nanum Myeongjo', 'Batang', serif;
+      --font-num:   'Bitter', 'Nanum Myeongjo', Georgia, serif;
     }
 
     * { box-sizing: border-box; }
 
     body {
       margin: 0;
-      padding: 28px 16px 64px;
+      padding: 22px 16px 60px;
       font-family: var(--font-ui);
       color: var(--ink);
-      background:
-        radial-gradient(1200px 600px at 50% -10%, #2a1c4d 0%, rgba(42,28,77,0) 60%),
-        radial-gradient(900px 500px at 100% 100%, #241640 0%, rgba(36,22,64,0) 55%),
-        linear-gradient(180deg, var(--bg-mid) 0%, var(--bg-deep) 100%);
-      background-attachment: fixed;
+      background: var(--paper-deep);
       -webkit-font-smoothing: antialiased;
     }
 
-    /* ============================================================
-       헤더
-       ============================================================ */
-    .home {
-      display: inline-block;
-      max-width: 1180px;
-      color: var(--ink-dim);
-      text-decoration: none;
-      font-size: .92rem;
-      padding: 6px 12px;
-      border: 2px solid var(--line);
-      border-radius: var(--radius-sm);
-      background: var(--panel);
-    }
-    .home:hover { color: var(--ink); border-color: var(--gold); }
+    .wrap { max-width: 1240px; margin: 0 auto; }
 
-    header { text-align: center; margin: 18px 0 22px; }
+    /* 숫자는 고정폭이라 자릿수가 흔들리지 않습니다. */
+    .num, input[type="text"], .n {
+      font-family: var(--font-num);
+      font-variant-numeric: tabular-nums lining-nums;
+      font-feature-settings: "tnum" 1;
+    }
+
+    /* ============================================================
+       머리
+       ============================================================ */
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .home {
+      display: inline-flex;
+      align-items: center;
+      min-height: 44px;
+      padding: 0 16px;
+      border: 2px solid var(--ink);
+      background: var(--paper);
+      color: var(--ink);
+      text-decoration: none;
+      font-size: 15px;
+      font-weight: 700;
+    }
+    .home:hover { background: var(--ink); color: var(--paper); }
+    .home:focus-visible { outline: 3px solid var(--seal); outline-offset: 2px; }
+
+    .eyebrow {
+      font-size: 13px;
+      color: var(--ink-soft);
+      letter-spacing: .18em;
+    }
+
+    header {
+      text-align: center;
+      border-top: 4px solid var(--ink);
+      border-bottom: 4px solid var(--ink);
+      margin-bottom: 30px;
+    }
 
     h1 {
-      font-family: var(--font-display);
-      font-size: clamp(1.9rem, 6vw, 2.8rem);
-      letter-spacing: .02em;
       margin: 0;
-      background: linear-gradient(180deg, #fff3c4 0%, var(--gold) 45%, var(--gold-deep) 100%);
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
-      filter: drop-shadow(0 3px 0 rgba(0,0,0,.5)) drop-shadow(0 0 18px rgba(255,201,60,.35));
+      padding: 22px 8px 8px;
+      border-bottom: 1px solid var(--ink);
+      font-size: clamp(1.7rem, 5.5vw, 2.7rem);
+      font-weight: 800;
+      letter-spacing: .12em;
+      text-wrap: balance;
     }
 
-    .subtitle { color: var(--ink-dim); font-size: .98rem; margin: 8px 0 0; }
-
-    .wrap { max-width: 1180px; margin: 0 auto; }
+    .subtitle {
+      margin: 0;
+      padding: 9px 8px 18px;
+      color: var(--ink-mid);
+      font-size: 15px;
+      letter-spacing: .02em;
+    }
 
     /* ============================================================
-       카드 (입력 묶음)
+       입력 카드
        ============================================================ */
     .cards {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(272px, 1fr));
       gap: 16px;
-      margin-bottom: 18px;
+      margin-bottom: 22px;
     }
 
     .card {
-      --accent: var(--gold);
-      background: linear-gradient(180deg, var(--panel-top) 0%, var(--panel) 100%);
-      border: 2px solid var(--line);
-      border-top: 4px solid var(--accent);
-      border-radius: var(--radius-lg);
-      box-shadow: var(--shadow-panel);
-      padding: 16px 16px 18px;
+      --accent: var(--ink);
+      background: var(--paper);
+      border: 2px solid var(--ink);
+      border-top: 9px solid var(--accent);
+      padding: 15px 15px 17px;
     }
 
     .card h2 {
-      font-family: var(--font-display);
-      font-size: 1.1rem;
+      margin: 0;
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: .04em;
       color: var(--accent);
-      margin: 0 0 4px;
-      letter-spacing: .01em;
     }
 
     .card .fee {
-      color: var(--ink-faint);
-      font-size: .8rem;
-      margin: 0 0 14px;
+      margin: 5px 0 0;
+      padding-bottom: 9px;
+      border-bottom: 2px solid var(--ink);
+      font-size: 12px;
+      color: var(--ink-soft);
     }
 
-    /* 라벨 + 입력 + 단위 한 줄 */
+    /* 라벨 / 입력 / 단위 */
     .field {
       display: grid;
-      grid-template-columns: 1fr 108px auto;
+      grid-template-columns: 1fr 116px 46px;
       align-items: center;
-      gap: 8px;
-      margin-bottom: 9px;
+      gap: 9px;
+      margin-top: 11px;
     }
-    .field > label { color: var(--ink-dim); font-size: .9rem; }
-    .field > .unit  { color: var(--ink-faint); font-size: .82rem; min-width: 52px; }
+    .field > label { font-size: 13px; color: var(--ink-mid); }
+    .field > .unit { font-size: 12px; color: var(--ink-soft); }
 
     input[type="text"] {
-      font-family: var(--font-num);
-      font-size: 1rem;
-      text-align: right;
-      color: var(--ink);
-      background: #150e26;
-      border: 2px solid var(--line);
-      border-radius: var(--radius-sm);
-      padding: 7px 9px;
       width: 100%;
+      min-height: 44px;
+      padding: 8px 11px;
+      text-align: right;
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--ink);
+      background: var(--paper-in);
+      border: 2px solid var(--ink);
+      border-radius: 0;
       -webkit-tap-highlight-color: transparent;
     }
     input[type="text"]:focus {
       outline: none;
-      border-color: var(--accent, var(--gold));
-      background: #1b1230;
+      border-color: var(--seal);
+      box-shadow: inset 0 0 0 2px var(--seal-bg);
     }
-    input.bad { border-color: var(--danger); }
+    input.bad { border-color: var(--seal); background: var(--seal-bg); }
 
+    /* 카드 하단 요약 상자 */
     .note {
-      color: var(--ok);
-      font-size: .86rem;
-      margin: 10px 0 0;
-      min-height: 1.2em;
+      margin: 13px 0 0;
+      padding: 9px 11px;
+      border: 2px solid var(--accent);
+      background: var(--paper-warm);
       font-family: var(--font-num);
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--ink);
     }
+    .note:empty { display: none; }
 
     /* ============================================================
        버튼
        ============================================================ */
-    .toolbar {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin: 0 0 18px;
-    }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 9px; margin: 0 0 22px; }
 
     .btn {
       font-family: var(--font-ui);
-      font-size: .95rem;
+      font-size: 15px;
+      font-weight: 700;
+      min-height: 44px;
+      padding: 9px 19px;
       color: var(--ink);
-      background: linear-gradient(180deg, var(--panel-top), var(--panel));
-      border: 2px solid var(--line);
-      border-radius: var(--radius-md);
-      padding: 9px 15px;
+      background: var(--paper);
+      border: 2px solid var(--ink);
+      border-radius: 0;
       cursor: pointer;
-      box-shadow: var(--shadow-key);
-      transition: transform .08s, box-shadow .08s, border-color .15s;
       -webkit-tap-highlight-color: transparent;
     }
-    .btn:hover { border-color: var(--gold); }
-    .btn:active { transform: translateY(2px); box-shadow: 0 2px 0 rgba(0,0,0,.45); }
-    .btn.primary { border-color: var(--gold-deep); color: var(--gold); }
+    .btn:hover { background: var(--paper-band); }
+    .btn:active { background: var(--ink); color: var(--paper); }
+    .btn:focus-visible { outline: 3px solid var(--seal); outline-offset: 2px; }
+    .btn.primary { background: var(--ink); color: var(--paper); }
+    .btn.primary:hover { background: #392f22; }
 
     /* ============================================================
-       아이템 표
+       패널 (아이템 표 · 결과)
        ============================================================ */
     .panel {
-      background: linear-gradient(180deg, var(--panel-top) 0%, var(--panel) 100%);
-      border: 2px solid var(--line);
-      border-radius: var(--radius-lg);
-      box-shadow: var(--shadow-panel);
-      padding: 16px;
-      margin-bottom: 18px;
+      background: var(--paper);
+      border: 2px solid var(--ink);
+      padding: 17px 19px 20px;
+      margin-bottom: 22px;
     }
 
     .panel > h2 {
-      font-family: var(--font-display);
-      font-size: 1.1rem;
-      color: var(--gold);
-      margin: 0 0 4px;
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      margin: 0;
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: .08em;
     }
-    .panel > .hint { color: var(--ink-faint); font-size: .82rem; margin: 0 0 14px; line-height: 1.6; }
+    .panel > h2::before {
+      content: "";
+      width: 12px;
+      height: 12px;
+      background: var(--ink);
+      flex-shrink: 0;
+    }
 
-    .table-scroll { overflow-x: auto; }
+    .panel > .hint {
+      margin: 9px 0 0;
+      padding-bottom: 11px;
+      border-bottom: 4px solid var(--ink);
+      font-size: 13px;
+      color: var(--ink-soft);
+      line-height: 1.7;
+    }
+    .panel > h2 + .hint { margin-top: 9px; }
+    /* 힌트가 없는 패널은 제목 아래에 직접 굵은 괘선 */
+    .panel > h2:last-of-type { padding-bottom: 0; }
 
-    table { border-collapse: collapse; width: 100%; min-width: 760px; }
+    .table-scroll { overflow-x: auto; margin-top: 14px; }
+
+    table { border-collapse: collapse; width: 100%; min-width: 780px; }
 
     th {
-      font-weight: normal;
-      color: var(--ink-faint);
-      font-size: .8rem;
+      font-weight: 400;
+      font-size: 13px;
+      color: var(--ink-mid);
       text-align: right;
       padding: 0 8px 8px;
-      border-bottom: 2px solid var(--line-soft);
+      border-bottom: 2px solid var(--ink);
       white-space: nowrap;
     }
     th:first-child { text-align: left; }
 
-    td { padding: 5px 8px; border-bottom: 1px solid var(--line-soft); }
-    td input[type="text"] { min-width: 82px; }
-    td input.name { text-align: left; font-family: var(--font-ui); min-width: 120px; }
+    td { padding: 7px 5px; border-bottom: 1px solid var(--rule); }
+    td:first-child { padding-left: 0; }
+    td input[type="text"] { min-width: 86px; font-size: 17px; }
+    td input.name {
+      text-align: left;
+      font-family: var(--font-ui);
+      min-width: 128px;
+    }
 
     .del {
+      min-width: 44px;
+      min-height: 44px;
       background: none;
       border: none;
       color: var(--ink-faint);
-      font-size: 1.1rem;
+      font-size: 18px;
       cursor: pointer;
-      padding: 4px 8px;
-      border-radius: var(--radius-sm);
     }
-    .del:hover { color: var(--danger); background: rgba(255,77,77,.12); }
+    .del:hover { color: var(--seal); background: var(--seal-bg); }
+    .del:focus-visible { outline: 3px solid var(--seal); outline-offset: -2px; }
 
-    .empty { color: var(--ink-faint); font-size: .9rem; padding: 14px 8px; text-align: center; }
+    .empty { color: var(--ink-faint); font-size: 14px; padding: 14px 8px; text-align: center; }
 
     /* ============================================================
        결과
        ============================================================ */
-    #out .section { margin-bottom: 22px; }
-    #out .section:last-child { margin-bottom: 0; }
+    #out .section { margin-top: 26px; }
+    #out .section:first-child { margin-top: 18px; }
 
     #out h3 {
-      font-family: var(--font-display);
-      font-size: 1rem;
-      color: var(--ink);
-      margin: 0 0 4px;
-      padding-bottom: 6px;
-      border-bottom: 2px solid var(--line);
-      letter-spacing: .01em;
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin: 0 0 2px;
+      padding-bottom: 7px;
+      border-bottom: 2px solid var(--ink);
+      font-size: 17px;
+      font-weight: 800;
+      letter-spacing: .06em;
     }
-    #out h3 .sub { font-family: var(--font-ui); color: var(--ink-faint); font-size: .78rem; margin-left: 8px; }
-    #out .r .sub { color: var(--ink-faint); font-size: .82rem; }
+    #out h3 .no { color: var(--seal); letter-spacing: .1em; }
+    #out h3 .sub {
+      font-weight: 400;
+      font-size: 12px;
+      color: var(--ink-soft);
+      letter-spacing: 0;
+    }
 
     .r {
       display: grid;
-      gap: 4px 14px;
-      padding: 7px 6px;
-      border-bottom: 1px solid var(--line-soft);
+      gap: 3px 14px;
+      padding: 11px 10px;
+      border-bottom: 1px solid var(--rule);
       font-family: var(--font-num);
-      font-size: .95rem;
+      font-variant-numeric: tabular-nums lining-nums;
+      font-size: 17px;
       align-items: baseline;
     }
     .r:last-child { border-bottom: none; }
-    .r .lbl { font-family: var(--font-ui); color: var(--ink-dim); font-size: .88rem; }
+    .r .lbl { font-family: var(--font-ui); font-size: 16px; color: var(--ink); }
     .r .num { text-align: right; }
-    .r.best { color: var(--ok); }
-    .r.best .lbl { color: var(--ok); }
-    .r.bad  { color: var(--danger); }
-    .r.dim  { color: var(--ink-faint); font-size: .86rem; }
+    .r .sub { color: var(--ink-soft); font-size: 13px; font-weight: 400; }
 
-    /* 환율 순위: 순위 · 경로 · 환율 · 100만당 */
-    .r.rank { grid-template-columns: 42px 1fr 150px 160px; }
-    /* 큐브 원가: 경로 · 단가 · 메소 환산 */
-    .r.cube { grid-template-columns: 1fr 130px 220px; }
-    /* 캐시템 비교: 이름 · 현금직구 · 경매장 · 유리 · 차액 */
-    .r.cmp  { grid-template-columns: 1fr 130px 190px 90px 130px; }
-    /* 일반 두 칸 */
-    .r.kv   { grid-template-columns: 120px 1fr; }
+    /* 최선 — 지면을 한 톤 눌러 깔고 굵게 */
+    .r.best { background: var(--paper-band); font-size: 19px; font-weight: 700; }
+    .r.best .lbl { font-size: 18px; font-weight: 800; }
 
-    .tag {
+    /* 주의 — 인장색 지면 */
+    .r.bad { background: var(--seal-bg); font-weight: 700; }
+    .r.bad .lbl { font-weight: 800; }
+    .r.bad .num:last-child { color: var(--seal); }
+
+    .r.dim { font-size: 14px; color: var(--ink-mid); }
+    .r.dim .lbl { font-size: 13px; color: var(--ink-soft); }
+
+    .r.rank { grid-template-columns: 76px 1fr 170px 190px; }
+    .r.cube { grid-template-columns: 1fr 140px 260px; }
+    .r.cmp  { grid-template-columns: 1fr 150px 230px 100px 160px; }
+    .r.kv   { grid-template-columns: 118px 1fr; }
+
+    /* 인장 — 색을 못 보더라도 구분되도록 글자를 함께 찍습니다. */
+    .seal {
+      display: inline-block;
+      margin-right: 8px;
+      padding: 3px 8px;
+      background: var(--seal);
+      color: var(--paper-in);
       font-family: var(--font-ui);
-      font-size: .74rem;
-      padding: 2px 8px;
-      border-radius: 999px;
-      border: 1px solid currentColor;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: .02em;
       white-space: nowrap;
     }
 
-    .star { color: var(--gold); }
+    .tag {
+      display: inline-block;
+      padding: 3px 9px;
+      border: 2px solid var(--ink);
+      font-family: var(--font-ui);
+      font-size: 13px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .r.best .tag, .r.bad .tag { background: var(--seal); border-color: var(--seal); color: var(--paper-in); }
 
-    .error { color: var(--danger); font-family: var(--font-ui); padding: 10px 6px; }
-
-    footer {
-      text-align: center;
-      color: var(--ink-faint);
-      font-size: .8rem;
-      margin-top: 44px;
-      line-height: 1.7;
+    .error {
+      padding: 14px 10px;
+      border: 2px solid var(--seal);
+      background: var(--seal-bg);
+      color: var(--seal);
+      font-family: var(--font-ui);
+      font-size: 15px;
+      font-weight: 700;
     }
 
-    /* 좁은 화면에서는 결과 행을 두 줄로 접습니다. */
-    @media (max-width: 700px) {
-      .r.rank { grid-template-columns: 42px 1fr; }
+    footer {
+      margin-top: 40px;
+      padding-top: 20px;
+      border-top: 1px solid var(--rule);
+      text-align: center;
+      color: var(--ink-soft);
+      font-size: 13px;
+      line-height: 1.9;
+    }
+
+    /* 좁은 화면에서는 결과 행을 접습니다. */
+    @media (max-width: 760px) {
+      .r.rank { grid-template-columns: 76px 1fr; }
       .r.rank .num { grid-column: 2; text-align: left; }
       .r.cube { grid-template-columns: 1fr; }
       .r.cube .num { text-align: left; }
@@ -326,13 +411,17 @@
       .r.cmp .num { text-align: left; }
       /* 칸이 접히면 머리글 줄이 오히려 헷갈립니다 */
       .r.cmp.hdr { display: none; }
+      .field { grid-template-columns: 1fr 130px 44px; }
     }
   </style>
 </head>
 <body>
 
   <div class="wrap">
-    <a class="home" href="index.html">← 뒤로가기</a>
+    <div class="topbar">
+      <a class="home" href="index.html">← 뒤로가기</a>
+      <span class="eyebrow">賣渡換率計算</span>
+    </div>
 
     <header>
       <h1>메소 환율 계산기</h1>
@@ -765,11 +854,25 @@
       return div;
     }
 
+    // 결과 절은 一, 二, 三… 으로 번호를 매깁니다.
+    const NUMERALS = ['一', '二', '三', '四', '五', '六', '七'];
+    let sectionNo = 0;
+
     function section(title, sub) {
       const s = document.createElement('div');
       s.className = 'section';
       const h = document.createElement('h3');
-      h.textContent = title;
+
+      const no = document.createElement('span');
+      no.className = 'no';
+      no.textContent = NUMERALS[sectionNo] || String(sectionNo + 1);
+      sectionNo++;
+      h.appendChild(no);
+
+      const ttl = document.createElement('span');
+      ttl.textContent = title;
+      h.appendChild(ttl);
+
       if (sub) {
         const em = document.createElement('span');
         em.className = 'sub';
@@ -783,6 +886,7 @@
     function render() {
       const out = $('out');
       out.innerHTML = '';
+      sectionNo = 0;
 
       const r = compute();
 
@@ -806,8 +910,8 @@
       r.routes.forEach(function (x, i) {
         const best = i === 0;
         s.appendChild(row('rank' + (best ? ' best' : ''), [
-          { cls: 'lbl', text: (i + 1) + '위' },
-          { cls: 'lbl', html: x.name + (best ? ' <span class="star">★</span>' : '') },
+          { cls: 'lbl', html: best ? '<span class="seal">1위</span>' : (i + 1) + '위' },
+          { cls: 'lbl', html: x.name },
           { text: '1 : ' + fmt(x.rate, 1) },
           { text: '100만당 ' + won(x.cost1M) }
         ]));
@@ -823,7 +927,7 @@
       ].forEach(function (c) {
         const best = c.val === r.cubeMin;
         s.appendChild(row('cube' + (best ? ' best' : ''), [
-          { cls: 'lbl', html: c.name + (best ? ' <span class="star">★</span>' : '') },
+          { cls: 'lbl', html: (best ? '<span class="seal">최저</span>' : '') + c.name },
           { text: c.price },
           { text: '= ' + meso(c.val) }
         ]));
