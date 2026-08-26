@@ -207,13 +207,22 @@
     }
     .laps.has { color: var(--accent); }
 
-    /* ---------- 시간 표시: 자릿수 타일 ---------- */
+    /* ---------- 시간 표시: 다시 시작 버튼 + 자릿수 타일 ---------- */
+    .time-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 11px;
+      position: relative;
+      z-index: 1;
+    }
+
     .digits {
       display: flex;
       justify-content: center;
       align-items: center;
       gap: 5px;
-      margin-bottom: 11px;
       position: relative;
       z-index: 1;
     }
@@ -384,6 +393,7 @@
 
     .btn-main {
       flex: 1 1 auto;
+      width: 100%;
       /* 아이콘과 글자를 나눠 담습니다 — 압축 PIP에서 글자만 감추기 위해서입니다 */
       display: flex;
       align-items: center;
@@ -407,8 +417,9 @@
 
     .btn-reset {
       flex: 0 0 auto;
-      width: 48px;
-      font-size: 1.1rem;
+      width: 46px;
+      height: 46px;
+      font-size: 1.3rem;
       color: var(--ink-dim);
       background: linear-gradient(180deg, var(--panel-top), var(--panel));
       border: 2px solid var(--line);
@@ -552,11 +563,10 @@
     body.pip-mode .controls { display: contents; }
 
     body.pip-mode .card-head       { order: 1; flex: 1 1 0; min-width: 0; margin: 0; gap: 4px; }
-    body.pip-mode .digits          { order: 2; flex: 0 0 auto; margin: 0; gap: 0; }
+    body.pip-mode .time-row        { order: 2; flex: 0 0 auto; margin: 0; gap: 5px; }
     body.pip-mode .steps-grp.minus { order: 3; }
     body.pip-mode .btn-main        { order: 4; }
     body.pip-mode .steps-grp.plus  { order: 5; }
-    body.pip-mode .btn-reset       { order: 6; }
 
     body.pip-mode .steps-grp { display: flex; gap: 2px; flex: 0 0 auto; }
 
@@ -619,8 +629,9 @@
 
     body.pip-mode .btn-reset {
       flex: 0 0 auto;
-      width: 26px;
-      font-size: .9rem;
+      width: 28px;
+      height: 28px;
+      font-size: 1rem;
       border-width: 1px;
       box-shadow: none;
     }
@@ -631,10 +642,9 @@
     /* ---------- PIP에 담지 않은 타이머 ----------
        아주 감춰 버리면 PIP 안에서 되돌릴 방법이 없어, 이름줄만 남깁니다. */
     body.pip-mode .card.pip-off { padding: 3px 7px; opacity: .72; }
-    body.pip-mode .card.pip-off .digits,
+    body.pip-mode .card.pip-off .time-row,
     body.pip-mode .card.pip-off .steps-grp,
     body.pip-mode .card.pip-off .btn-main,
-    body.pip-mode .card.pip-off .btn-reset,
     body.pip-mode .card.pip-off .bar { display: none; }
     body.pip-mode .card.pip-off .name { font-size: .72rem; }
 
@@ -726,7 +736,7 @@
   <div class="toolbar">
     <button class="btn" id="start-all">▶ 전체 시작</button>
     <button class="btn" id="stop-all">⏸ 전체 정지</button>
-    <button class="btn" id="reset-all">↺ 전체 리셋</button>
+    <button class="btn" id="reset-all">↺ 전체 다시 시작</button>
     <button class="btn on" id="sound-btn" aria-pressed="true">🔊 소리 켜짐</button>
     <button class="btn" id="notify-btn">🔔 알림 켜기</button>
     <button class="btn" id="pip-btn">📺 PIP (항상 위)</button>
@@ -1039,14 +1049,19 @@
       renderAll();
     }
 
-    function reset(t) {
-      t.running = false;
-      t.endsAt = null;
+    // 설정한 시간의 처음으로 되돌리고 곧바로 다시 셉니다.
+    // 3분짜리가 10초 남았을 때 누르면 3분부터 다시 시작합니다.
+    function restart(t) {
+      if (t.total <= 0) return;
+      t.endsAt = Date.now() + t.total * 1000;
       t.paused = null;
+      t.running = true;
       t.laps = 0;
       t.lastShown = null;
       clearTimeout(t.doneTimer);
       t.doms.forEach(function (d) { d.card.classList.remove('done'); });
+      ensureAudio();
+      requestWakeLock();
       save();
       renderAll();
     }
@@ -1251,13 +1266,18 @@
       resetBtn.className = 'btn-reset';
       resetBtn.type = 'button';
       resetBtn.textContent = '↺';
-      resetBtn.title = '리셋';
-      resetBtn.setAttribute('aria-label', t.name + ' 리셋');
-      resetBtn.addEventListener('click', function () { reset(t); });
+      resetBtn.title = '처음부터 다시';
+      resetBtn.setAttribute('aria-label', t.name + ' 처음부터 다시 시작');
+      resetBtn.addEventListener('click', function () { restart(t); });
 
-      controls.append(mainBtn, resetBtn);
+      controls.append(mainBtn);
 
-      card.append(head, digits, bar, chips, steps, manual, controls);
+      // 다시 시작 버튼은 분초 박스 바로 왼쪽에 둡니다.
+      const timeRow = doc.createElement('div');
+      timeRow.className = 'time-row';
+      timeRow.append(resetBtn, digits);
+
+      card.append(head, timeRow, bar, chips, steps, manual, controls);
 
       const dom = {
         card: card, name: name, laps: laps,
@@ -1611,7 +1631,7 @@
       bar.className = 'toolbar';
       [['▶ 전체 시작', function () { timers.forEach(start); }],
        ['⏸ 전체 정지', function () { timers.forEach(pause); }],
-       ['↺ 전체 리셋', function () { timers.forEach(reset); }]
+       ['↺ 전체 다시 시작', function () { timers.forEach(restart); }]
       ].forEach(function (item) {
         const b = doc.createElement('button');
         b.className = 'btn';
@@ -1683,7 +1703,7 @@
       timers.forEach(pause);
     });
     document.getElementById('reset-all').addEventListener('click', function () {
-      timers.forEach(reset);
+      timers.forEach(restart);
     });
 
     el.soundBtn.addEventListener('click', function () {
