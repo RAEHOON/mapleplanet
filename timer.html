@@ -570,16 +570,29 @@
     body.pip-mode .manual { display: none; }
 
     body.pip-mode .swatch { width: 13px; height: 13px; border-width: 1px; }
-    body.pip-mode .name   { font-size: .8rem; padding: 1px 3px; border-width: 1px; }
+    /* 이름칸은 글자 수에 맞춰 늘고 줄어듭니다. 남는 폭은 뒤(--name-w 다음)로
+       몰아서, 줄마다 남은시간과 버튼이 같은 자리에 서게 합니다. */
+    body.pip-mode .name {
+      font-size: .8rem;
+      padding: 1px 3px;
+      border-width: 1px;
+      flex: 0 1 auto;
+      width: var(--name-w, auto);
+      min-width: 3em;
+      max-width: 12em;
+      field-sizing: content;
+    }
     body.pip-mode .laps   { font-size: .65rem; min-width: 0; }
 
+    /* 남은 시간이 이 창의 주인공입니다 — 정사각 타일로 키웁니다. */
+    body.pip-mode .digits { gap: 2px; }
     body.pip-mode .d {
-      width: 21px;
-      height: 30px;
-      font-size: 1.25rem;
-      border-width: 1px;
+      width: 34px;
+      height: 34px;
+      font-size: 1.7rem;
+      border-width: 2px;
     }
-    body.pip-mode .colon { font-size: 1rem; padding: 0 1px; }
+    body.pip-mode .colon { font-size: 1.35rem; padding: 0 2px; }
 
     body.pip-mode .step {
       flex: 0 0 auto;
@@ -645,7 +658,7 @@
       background: var(--gold);
       border-color: var(--gold);
     }
-    body.pip-mode .pip-pick { width: 22px; height: 22px; border-width: 1px; }
+    body.pip-mode .pip-pick { width: 22px; height: 22px; border-width: 1px; margin-right: auto; }
 
     .pip-notice {
       max-width: 560px;
@@ -1092,6 +1105,7 @@
       name.setAttribute('aria-label', '타이머 이름');
       name.addEventListener('input', function () {
         t.name = name.value || '타이머 ' + t.id;
+        fitName(t);
         save();
       });
 
@@ -1234,6 +1248,21 @@
         mainBtn: mainBtn, mainIco: mainIco, mainLbl: mainLbl
       };
       return card;
+    }
+
+    // 이름칸 폭 — 최신 크롬은 CSS field-sizing 이 알아서 해 주고,
+    // 안 되는 브라우저에만 글자 폭을 어림해 --name-w 로 넘깁니다.
+    const HAS_FIELD_SIZING = !!(window.CSS && CSS.supports && CSS.supports('field-sizing', 'content'));
+
+    function fitName(t) {
+      if (HAS_FIELD_SIZING || !t.dom) return;
+      const v = t.dom.name.value || '';
+      let em = 0;
+      for (let i = 0; i < v.length; i++) {
+        // 한글·전각은 한 칸, 나머지는 반 칸 남짓으로 봅니다
+        em += /[ᄀ-ᇿ㄰-㆏가-힣！-｠]/.test(v[i]) ? 1 : 0.56;
+      }
+      t.dom.name.style.setProperty('--name-w', Math.min(12, Math.max(3, em + 0.8)) + 'em');
     }
 
     // PIP에 담을지 여부를 카드와 버튼에 반영합니다.
@@ -1518,13 +1547,13 @@
       if (pipWindow) { pipWindow.close(); return; }   // 정리는 pagehide 에서 합니다
 
       // 한 줄 배치에 필요한 폭 = 이름 + 남은시간 + 조절 6칸 + 재생 + 리셋.
-      // 이보다 좁히면 조절 버튼이 다음 줄로 접힙니다.
-      // 높이 = 여백 + 툴바 두 줄 + (담은 줄 50 · 뺀 줄 28) × 개수.
+      // 더 좁히면 이름칸부터 줄고, 그다음엔 버튼이 다음 줄로 접힙니다.
+      // 높이 = 여백 + 툴바 두 줄 + (담은 줄 56 · 뺀 줄 28) × 개수.
       const shown = pipCount();
       const hidden = timers.length - shown;
       const size = {
-        width: 500,
-        height: Math.max(150, 20 + 70 + shown * 50 + hidden * 28)
+        width: 560,
+        height: Math.max(150, 20 + 70 + shown * 56 + hidden * 28)
       };
 
       let win;
@@ -1669,6 +1698,7 @@
 
     timers.forEach(function (t) { el.grid.appendChild(buildCard(t)); });
     timers.forEach(applyPipPick);   // 카드가 만들어진 뒤라야 상태를 반영할 수 있습니다
+    timers.forEach(fitName);
 
     renderAll();
     setInterval(loop, 200);
