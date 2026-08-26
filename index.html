@@ -7,38 +7,30 @@
   <meta name="description" content="메소 환율 계산기와 유혹 타이머. 브라우저에서 바로 쓰는 비공식 팬 도구입니다.">
   <meta property="og:title" content="메이플 도구모음">
   <meta property="og:description" content="메소 환율 계산기와 유혹 타이머를 한 곳에서.">
-  <meta name="theme-color" content="#150e26">
+  <meta name="theme-color" content="#ddcfb0">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Do+Hyeon&family=Jua&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700;800&family=Bitter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     /* ============================================================
-       디자인 토큰 — 타이머 페이지와 같은 값을 씁니다.
+       디자인 토큰 — 계산기·타이머와 같은 값을 씁니다.
        ============================================================ */
     :root {
-      --bg-deep:      #100a1c;
-      --bg-mid:       #170f2b;
-      --panel:        #1d1533;
-      --panel-top:    #251b40;
-      --line:         #3a2d5c;
-      --line-soft:    #2c2246;
+      --paper-deep: #ddcfb0;   /* 지면 */
+      --paper:      #f7f1e2;   /* 카드 */
+      --paper-band: #ece0c6;   /* 눌린 상태 */
 
-      --ink:          #ece6ff;
-      --ink-dim:      #a498c8;
-      --ink-faint:    #6f6390;
+      --ink:        #201a13;
+      --ink-mid:    #514536;
+      --ink-soft:   #6b5f4d;
 
-      --gold:         #ffc93c;
-      --gold-deep:    #e8a013;
-      --violet:       #c58cff;
+      --rule:       #c3b08c;
 
-      --radius-lg:    18px;
-      --radius-md:    12px;
+      --seal:       #8f2f22;   /* 계산기 */
+      --indigo:     #23404f;   /* 타이머 */
 
-      --shadow-panel: 0 6px 0 rgba(0,0,0,.35), 0 14px 30px rgba(0,0,0,.45);
-
-      --font-display: 'Black Han Sans', 'Malgun Gothic', sans-serif;
-      --font-ui:      'Jua', 'Malgun Gothic', sans-serif;
-      --font-num:     'Do Hyeon', 'Malgun Gothic', monospace;
+      --font-ui:  'Nanum Myeongjo', 'Batang', serif;
+      --font-num: 'Bitter', 'Nanum Myeongjo', Georgia, serif;
     }
 
     * { box-sizing: border-box; }
@@ -47,14 +39,10 @@
 
     body {
       margin: 0;
-      padding: 48px 16px 64px;
+      padding: 22px 16px 56px;
       font-family: var(--font-ui);
       color: var(--ink);
-      background:
-        radial-gradient(1200px 600px at 50% -10%, #2a1c4d 0%, rgba(42,28,77,0) 60%),
-        radial-gradient(900px 500px at 100% 100%, #241640 0%, rgba(36,22,64,0) 55%),
-        linear-gradient(180deg, var(--bg-mid) 0%, var(--bg-deep) 100%);
-      background-attachment: fixed;
+      background: var(--paper-deep);
       -webkit-font-smoothing: antialiased;
 
       display: flex;
@@ -62,138 +50,217 @@
       min-height: 100%;
     }
 
+    .wrap {
+      width: 100%;
+      max-width: 760px;
+      margin: 0 auto;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
     /* ============================================================
-       헤더
+       표제부
        ============================================================ */
-    header { text-align: center; margin-bottom: 40px; }
+    .eyebrow {
+      display: block;
+      text-align: center;
+      font-size: 13px;
+      color: var(--ink-soft);
+      letter-spacing: .18em;
+      margin-bottom: 16px;
+    }
+
+    header {
+      text-align: center;
+      border-top: 4px solid var(--ink);
+      border-bottom: 4px solid var(--ink);
+      margin-bottom: 34px;
+    }
 
     h1 {
-      font-family: var(--font-display);
-      font-size: clamp(2.2rem, 7vw, 3.4rem);
-      letter-spacing: .02em;
       margin: 0;
-      background: linear-gradient(180deg, #fff3c4 0%, var(--gold) 45%, var(--gold-deep) 100%);
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
-      filter: drop-shadow(0 3px 0 rgba(0,0,0,.5)) drop-shadow(0 0 18px rgba(255,201,60,.35));
+      padding: 24px 8px 9px;
+      border-bottom: 1px solid var(--ink);
+      font-size: clamp(1.9rem, 6vw, 2.9rem);
+      font-weight: 800;
+      letter-spacing: .14em;
+      text-wrap: balance;
     }
 
     .subtitle {
-      color: var(--ink-dim);
-      font-size: 1rem;
-      margin: 10px 0 0;
+      margin: 0;
+      padding: 10px 8px 20px;
+      color: var(--ink-mid);
+      font-size: 15px;
+      letter-spacing: .02em;
     }
 
     /* ============================================================
-       메뉴 타일 — 각 도구로 들어가는 큰 버튼
+       도구 타일
        ============================================================ */
     main {
-      flex: 1;
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      gap: 20px;
-      max-width: 720px;
-      width: 100%;
-      margin: 0 auto;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 18px;
       align-content: start;
     }
 
     .tile {
-      /* --accent 는 타일마다 다르게 지정합니다. */
-      --accent: var(--gold);
+      --accent: var(--seal);
 
-      display: block;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 14px;
+
+      padding: 30px 22px 26px;
       text-decoration: none;
       color: inherit;
 
-      background: linear-gradient(180deg, var(--panel-top) 0%, var(--panel) 100%);
-      border: 2px solid var(--line);
-      border-radius: var(--radius-lg);
-      box-shadow: var(--shadow-panel);
-      padding: 28px 24px 26px;
-      text-align: center;
+      background: var(--paper);
+      border: 2px solid var(--ink);
+      border-top: 9px solid var(--accent);
+      box-shadow: 5px 5px 0 rgba(32, 26, 19, .14);
 
-      transition: transform .12s, box-shadow .12s, border-color .18s;
+      transition: transform .1s, box-shadow .1s, background .15s;
     }
 
-    .tile:hover,
+    .tile:hover {
+      background: var(--paper-band);
+      transform: translate(-2px, -2px);
+      box-shadow: 8px 8px 0 rgba(32, 26, 19, .18);
+    }
+
+    .tile:active {
+      transform: translate(2px, 2px);
+      box-shadow: 2px 2px 0 rgba(32, 26, 19, .2);
+    }
+
     .tile:focus-visible {
-      transform: translateY(-4px);
-      border-color: var(--accent);
-      box-shadow:
-        0 10px 0 rgba(0,0,0,.35),
-        0 18px 36px rgba(0,0,0,.5),
-        0 0 26px -6px var(--accent);
-      outline: none;
+      outline: 3px solid var(--accent);
+      outline-offset: 3px;
     }
 
-    .tile:active { transform: translateY(0); }
-
-    .tile .icon {
-      font-size: 2.6rem;
-      line-height: 1;
-      display: block;
-      margin-bottom: 14px;
-      filter: drop-shadow(0 3px 6px rgba(0,0,0,.5));
-    }
+    .tile .icon { color: var(--accent); }
 
     .tile .name {
-      font-family: var(--font-display);
-      font-size: 1.5rem;
+      font-size: 23px;
+      font-weight: 800;
+      letter-spacing: .06em;
       color: var(--accent);
-      display: block;
-      letter-spacing: .01em;
+      padding-bottom: 12px;
+      border-bottom: 2px solid var(--ink);
+      width: 100%;
     }
 
     .tile .desc {
-      color: var(--ink-dim);
-      font-size: .92rem;
-      margin: 10px 0 0;
-      line-height: 1.6;
+      margin: 0;
+      color: var(--ink-mid);
+      font-size: 14px;
+      line-height: 1.85;
+    }
+
+    .tile .go {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      margin-top: auto;
+      padding-top: 6px;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--accent);
     }
 
     /* ============================================================
-       푸터
+       하단
        ============================================================ */
     footer {
+      margin-top: 44px;
+      padding-top: 18px;
+      border-top: 1px solid var(--rule);
       text-align: center;
-      color: var(--ink-faint);
-      font-size: .8rem;
-      margin-top: 56px;
-      line-height: 1.7;
+      color: var(--ink-soft);
+      font-size: 13px;
+      line-height: 1.9;
     }
 
     @media (prefers-reduced-motion: reduce) {
       .tile { transition: none; }
-      .tile:hover, .tile:focus-visible { transform: none; }
+      .tile:hover, .tile:active { transform: none; }
     }
   </style>
 </head>
 <body>
 
-  <header>
-    <h1>메이플 도구모음</h1>
-    <p class="subtitle">설치 없이 브라우저에서 바로 쓰는 도구들</p>
-  </header>
+  <div class="wrap">
 
-  <main>
-    <a class="tile" href="calculator.html" style="--accent: var(--gold);">
-      <span class="icon">💰</span>
-      <span class="name">메소 환율 계산기</span>
-      <p class="desc">택배 · 자유시장 · 경매장 시세를 비교해<br>메소를 가장 싸게 구하는 방법을 찾습니다</p>
-    </a>
+    <header>
+      <h1>메이플 도구모음</h1>
+      <p class="subtitle">설치 없이 브라우저에서 바로 쓰는 도구들</p>
+    </header>
 
-    <a class="tile" href="timer.html" style="--accent: var(--violet);">
-      <span class="icon">⏱️</span>
-      <span class="name">유혹 타이머</span>
-      <p class="desc">최대 5개, 60분까지 무한 반복되는 타이머<br>임박하면 점멸 · 알림음으로 알려줍니다</p>
-    </a>
-  </main>
+    <main>
 
-  <footer>
-    이 페이지는 넥슨코리아와 무관한 비공식 팬 페이지입니다.
-  </footer>
+      <a class="tile" href="calculator.html" style="--accent: var(--seal);">
+        <!-- 저울 — 시세를 견주는 도구 -->
+        <svg class="icon" width="46" height="46" viewBox="0 0 48 48" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+             aria-hidden="true">
+          <path d="M24 7 v33"></path>
+          <path d="M15 40 h18"></path>
+          <path d="M9 14 h30"></path>
+          <path d="M24 10 a2.4 2.4 0 1 0 0 4.8 a2.4 2.4 0 1 0 0 -4.8"></path>
+          <path d="M9 14 L3.5 27 h11 Z"></path>
+          <path d="M39 14 L33.5 27 h11 Z"></path>
+        </svg>
+
+        <span class="name">메소 환율 계산기</span>
+        <p class="desc">택배 · 자유시장 · 경매장 시세를 견주어<br>메소를 가장 싸게 구하는 길을 찾습니다</p>
+
+        <span class="go">
+          펼쳐 보기
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"
+               aria-hidden="true">
+            <path d="M4 12 h14 M13 6 l6 6 l-6 6"></path>
+          </svg>
+        </span>
+      </a>
+
+      <a class="tile" href="timer.html" style="--accent: var(--indigo);">
+        <!-- 모래시계 — 되풀이되는 시간 -->
+        <svg class="icon" width="46" height="46" viewBox="0 0 48 48" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+             aria-hidden="true">
+          <path d="M12 5 h24"></path>
+          <path d="M12 43 h24"></path>
+          <path d="M15 5 v7 a9 9 0 0 0 4.5 7.8 L24 24 l4.5 -4.2 A9 9 0 0 0 33 12 V5"></path>
+          <path d="M15 43 v-7 a9 9 0 0 1 4.5 -7.8 L24 24 l4.5 4.2 A9 9 0 0 1 33 36 v7"></path>
+          <path d="M19 38 h10"></path>
+        </svg>
+
+        <span class="name">유혹 타이머</span>
+        <p class="desc">최대 5개, 60분까지 무한 반복되는 타이머<br>임박하면 점멸 · 알림음으로 알려줍니다</p>
+
+        <span class="go">
+          펼쳐 보기
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"
+               aria-hidden="true">
+            <path d="M4 12 h14 M13 6 l6 6 l-6 6"></path>
+          </svg>
+        </span>
+      </a>
+
+    </main>
+
+    <footer>
+      이 페이지는 넥슨코리아와 무관한 비공식 팬 페이지입니다.
+    </footer>
+
+  </div>
 
 </body>
 </html>
