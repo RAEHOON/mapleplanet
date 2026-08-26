@@ -660,19 +660,6 @@
     }
     body.pip-mode .pip-pick { width: 22px; height: 22px; border-width: 1px; margin-right: auto; }
 
-    .pip-notice {
-      max-width: 560px;
-      margin: 30px auto;
-      padding: 26px 22px;
-      text-align: center;
-      color: var(--ink-dim);
-      background: linear-gradient(180deg, var(--panel-top), var(--panel));
-      border: 2px dashed var(--line);
-      border-radius: var(--radius-lg);
-      line-height: 1.8;
-    }
-    .pip-notice strong { color: var(--gold); font-family: var(--font-display); }
-
     /* 캔버스 방식 PIP (Document PIP 미지원 브라우저 대비용) */
     #pip-canvas, #pip-video { position: fixed; left: -9999px; top: -9999px; }
 
@@ -802,6 +789,7 @@
         running: false,
         laps: 0,
         inPip: true,      // PIP 창에 담을지 — 카드의 PIP 버튼으로 켜고 끕니다
+        doms: [],         // 이 타이머를 그리는 카드들. 본 창과 PIP 창에 한 벌씩
         lastShown: null   // 초 단위 변화 감지용 (틱 소리 중복 방지)
       });
     }
@@ -976,14 +964,16 @@
       // 카드 튀는 효과.
       // 끝나면 반드시 클래스를 떼야 합니다. 남아 있으면 .card.done 의 animation 이
       // .card.danger 의 테두리 맥동을 계속 덮어써서 이후 경고가 죽습니다.
-      const card = t.dom && t.dom.card;
-      if (card) {
+      const cards = t.doms.map(function (d) { return d.card; });
+      cards.forEach(function (card) {
         card.classList.remove('done');
         void card.offsetWidth;
         card.classList.add('done');
-        clearTimeout(t.doneTimer);
-        t.doneTimer = setTimeout(function () { card.classList.remove('done'); }, 650);
-      }
+      });
+      clearTimeout(t.doneTimer);
+      t.doneTimer = setTimeout(function () {
+        cards.forEach(function (card) { card.classList.remove('done'); });
+      }, 650);
 
       showToast(t);
 
@@ -1052,7 +1042,7 @@
       t.laps = 0;
       t.lastShown = null;
       clearTimeout(t.doneTimer);
-      if (t.dom) t.dom.card.classList.remove('done');
+      t.doms.forEach(function (d) { d.card.classList.remove('done'); });
       save();
       renderAll();
     }
@@ -1076,16 +1066,17 @@
     /* ==========================================================
        카드 생성
        ========================================================== */
-    function buildCard(t) {
-      const card = document.createElement('section');
+    // doc 을 받아 본 창에도, PIP 창에도 같은 카드를 만듭니다.
+    function buildCard(t, doc) {
+      const card = doc.createElement('section');
       card.className = 'card idle';
       card.style.setProperty('--base', t.color);
 
       /* --- 헤더 --- */
-      const head = document.createElement('div');
+      const head = doc.createElement('div');
       head.className = 'card-head';
 
-      const swatch = document.createElement('button');
+      const swatch = doc.createElement('button');
       swatch.className = 'swatch';
       swatch.type = 'button';
       swatch.title = '색 바꾸기';
@@ -1093,11 +1084,11 @@
       swatch.addEventListener('click', function () {
         const next = (PALETTE.indexOf(t.color) + 1) % PALETTE.length;
         t.color = PALETTE[next];
-        card.style.setProperty('--base', t.color);
+        t.doms.forEach(function (d) { d.card.style.setProperty('--base', t.color); });
         save();
       });
 
-      const name = document.createElement('input');
+      const name = doc.createElement('input');
       name.className = 'name';
       name.type = 'text';
       name.value = t.name;
@@ -1106,13 +1097,14 @@
       name.addEventListener('input', function () {
         t.name = name.value || '타이머 ' + t.id;
         fitName(t);
+        applyPipPick(t);   // 읽어 주는 이름표도 함께 갱신
         save();
       });
 
-      const laps = document.createElement('span');
+      const laps = doc.createElement('span');
       laps.className = 'laps';
 
-      const pick = document.createElement('button');
+      const pick = doc.createElement('button');
       pick.className = 'pip-pick';
       pick.type = 'button';
       pick.innerHTML =
@@ -1129,30 +1121,30 @@
       head.append(swatch, name, laps, pick);
 
       /* --- 시간 표시 (자릿수 타일) --- */
-      const digits = document.createElement('div');
+      const digits = doc.createElement('div');
       digits.className = 'digits';
       digits.setAttribute('role', 'timer');
       digits.setAttribute('aria-live', 'off');
 
-      const dm1 = mkDigit(), dm2 = mkDigit();
-      const colon = document.createElement('span');
+      const dm1 = mkDigit(doc), dm2 = mkDigit(doc);
+      const colon = doc.createElement('span');
       colon.className = 'colon';
       colon.textContent = ':';
-      const ds1 = mkDigit(), ds2 = mkDigit();
+      const ds1 = mkDigit(doc), ds2 = mkDigit(doc);
       digits.append(dm1, dm2, colon, ds1, ds2);
 
       /* --- 진행바 --- */
-      const bar = document.createElement('div');
+      const bar = doc.createElement('div');
       bar.className = 'bar';
-      const fill = document.createElement('div');
+      const fill = doc.createElement('div');
       fill.className = 'bar-fill';
       bar.appendChild(fill);
 
       /* --- 빠른 선택 칩 --- */
-      const chips = document.createElement('div');
+      const chips = doc.createElement('div');
       chips.className = 'chips';
       const chipEls = PRESETS.map(function (p) {
-        const c = document.createElement('button');
+        const c = doc.createElement('button');
         c.className = 'chip';
         c.type = 'button';
         c.textContent = p.label;
@@ -1163,18 +1155,18 @@
       });
 
       /* --- 미세 조절 (±1 · ±3 · ±5초) --- */
-      const steps = document.createElement('div');
+      const steps = doc.createElement('div');
       steps.className = 'steps';
 
       // −묶음과 +묶음을 따로 둡니다. PIP에서는 이 둘 사이에 재생 버튼이 들어갑니다.
-      const minusGrp = document.createElement('div');
+      const minusGrp = doc.createElement('div');
       minusGrp.className = 'steps-grp minus';
-      const plusGrp = document.createElement('div');
+      const plusGrp = doc.createElement('div');
       plusGrp.className = 'steps-grp plus';
       steps.append(minusGrp, plusGrp);
 
       const stepEls = STEPS.map(function (delta) {
-        const b = document.createElement('button');
+        const b = doc.createElement('button');
         b.className = 'step ' + (delta > 0 ? 'plus' : 'minus');
         b.type = 'button';
         // 빼기는 하이픈이 아니라 진짜 마이너스 기호라야 +와 폭이 맞습니다
@@ -1188,18 +1180,18 @@
       });
 
       /* --- 직접 입력 --- */
-      const manual = document.createElement('div');
+      const manual = doc.createElement('div');
       manual.className = 'manual';
 
-      const min = document.createElement('input');
+      const min = doc.createElement('input');
       min.type = 'number'; min.min = 0; min.max = 60; min.inputMode = 'numeric';
       min.setAttribute('aria-label', '분');
-      const minLabel = document.createElement('label'); minLabel.textContent = '분';
+      const minLabel = doc.createElement('label'); minLabel.textContent = '분';
 
-      const sec = document.createElement('input');
+      const sec = doc.createElement('input');
       sec.type = 'number'; sec.min = 0; sec.max = 59; sec.inputMode = 'numeric';
       sec.setAttribute('aria-label', '초');
-      const secLabel = document.createElement('label'); secLabel.textContent = '초';
+      const secLabel = doc.createElement('label'); secLabel.textContent = '초';
 
       function readManual() {
         const m = Math.max(0, Math.floor(Number(min.value) || 0));
@@ -1212,23 +1204,23 @@
       manual.append(min, minLabel, sec, secLabel);
 
       /* --- 컨트롤 --- */
-      const controls = document.createElement('div');
+      const controls = doc.createElement('div');
       controls.className = 'controls';
 
-      const mainBtn = document.createElement('button');
+      const mainBtn = doc.createElement('button');
       mainBtn.className = 'btn-main';
       mainBtn.type = 'button';
       // 아이콘과 글자를 따로 담습니다 — 압축 PIP에서는 .lbl 만 숨겨 아이콘 버튼이 됩니다
-      const mainIco = document.createElement('span');
+      const mainIco = doc.createElement('span');
       mainIco.className = 'ico';
-      const mainLbl = document.createElement('span');
+      const mainLbl = doc.createElement('span');
       mainLbl.className = 'lbl';
       mainBtn.append(mainIco, mainLbl);
       mainBtn.addEventListener('click', function () {
         if (t.running) pause(t); else start(t);
       });
 
-      const resetBtn = document.createElement('button');
+      const resetBtn = doc.createElement('button');
       resetBtn.className = 'btn-reset';
       resetBtn.type = 'button';
       resetBtn.textContent = '↺';
@@ -1240,13 +1232,14 @@
 
       card.append(head, digits, bar, chips, steps, manual, controls);
 
-      t.dom = {
+      const dom = {
         card: card, name: name, laps: laps,
         dm1: dm1, dm2: dm2, ds1: ds1, ds2: ds2,
         fill: fill, chips: chipEls, steps: stepEls, pick: pick,
         min: min, sec: sec,
         mainBtn: mainBtn, mainIco: mainIco, mainLbl: mainLbl
       };
+      t.doms.push(dom);
       return card;
     }
 
@@ -1255,24 +1248,25 @@
     const HAS_FIELD_SIZING = !!(window.CSS && CSS.supports && CSS.supports('field-sizing', 'content'));
 
     function fitName(t) {
-      if (HAS_FIELD_SIZING || !t.dom) return;
-      const v = t.dom.name.value || '';
+      if (HAS_FIELD_SIZING) return;
+      const v = t.name || '';
       let em = 0;
       for (let i = 0; i < v.length; i++) {
         // 한글·전각은 한 칸, 나머지는 반 칸 남짓으로 봅니다
         em += /[ᄀ-ᇿ㄰-㆏가-힣！-｠]/.test(v[i]) ? 1 : 0.56;
       }
-      t.dom.name.style.setProperty('--name-w', Math.min(12, Math.max(3, em + 0.8)) + 'em');
+      const w = Math.min(12, Math.max(3, em + 0.8)) + 'em';
+      t.doms.forEach(function (d) { d.name.style.setProperty('--name-w', w); });
     }
 
     // PIP에 담을지 여부를 카드와 버튼에 반영합니다.
     function applyPipPick(t) {
-      const d = t.dom;
-      if (!d) return;
-      d.card.classList.toggle('pip-off', !t.inPip);
-      d.pick.setAttribute('aria-pressed', String(t.inPip));
-      d.pick.title = t.inPip ? 'PIP에서 빼기' : 'PIP에 넣기';
-      d.pick.setAttribute('aria-label', t.name + (t.inPip ? ' PIP에서 빼기' : ' PIP에 넣기'));
+      t.doms.forEach(function (d) {
+        d.card.classList.toggle('pip-off', !t.inPip);
+        d.pick.setAttribute('aria-pressed', String(t.inPip));
+        d.pick.title = t.inPip ? 'PIP에서 빼기' : 'PIP에 넣기';
+        d.pick.setAttribute('aria-label', t.name + (t.inPip ? ' PIP에서 빼기' : ' PIP에 넣기'));
+      });
     }
 
     function pipCount() {
@@ -1295,59 +1289,62 @@
 
       timers.forEach(function (t) {
         const remain = remainingOf(t);
-        const dom = t.dom;
         const parts = splitTime(remain);
-
-        // 숫자
-        if (dom.dm1.textContent !== parts.m[0]) dom.dm1.textContent = parts.m[0];
-        if (dom.dm2.textContent !== parts.m[1]) dom.dm2.textContent = parts.m[1];
-        if (dom.ds1.textContent !== parts.s[0]) dom.ds1.textContent = parts.s[0];
-        if (dom.ds2.textContent !== parts.s[1]) dom.ds2.textContent = parts.s[1];
-
-        // 진행바
-        const pct = t.total > 0 ? (remain / t.total) * 100 : 0;
-        dom.fill.style.width = pct + '%';
-
-        // 상태 클래스
         const level = levelOf(t, remain);
-        dom.card.classList.toggle('idle', !t.running);
-        dom.card.classList.toggle('paused', !t.running && t.paused !== null);
-        dom.card.classList.toggle('running', t.running);
-        dom.card.classList.toggle('warn', level === 'warn');
-        dom.card.classList.toggle('danger', level === 'danger' || level === 'critical');
-        dom.card.classList.toggle('critical', level === 'critical');
-
-        // 버튼 문구 (아이콘과 글자가 따로라 각각 비교합니다)
-        const wantIco = t.running ? '⏸' : '▶';
-        const wantLbl = t.running ? '일시정지'
-                      : (t.paused !== null && t.paused > 0 ? '이어서 시작' : '시작');
-        if (dom.mainIco.textContent !== wantIco) dom.mainIco.textContent = wantIco;
-        if (dom.mainLbl.textContent !== wantLbl) dom.mainLbl.textContent = wantLbl;
-
-        // 미세 조절 — 0초/60분 경계를 넘는 버튼은 잠급니다
-        dom.steps.forEach(function (b) {
-          const next = t.total + Number(b.dataset.delta);
-          b.disabled = (next < 0 || next > MAX_SECONDS);
-        });
-
-        // 반복 횟수
-        const lapText = t.laps > 0 ? t.laps + '회' : '';
-        if (dom.laps.textContent !== lapText) dom.laps.textContent = lapText;
-        dom.laps.classList.toggle('has', t.laps > 0);
-
-        // 직접 입력칸 (입력 중에는 건드리지 않습니다)
-        // PIP 창으로 옮겨가면 소속 document 가 바뀌므로 ownerDocument 로 확인해야
-        // PIP 안에서 타이핑하는 중에 값이 덮어씌워지지 않습니다.
+        const pct = t.total > 0 ? (remain / t.total) * 100 : 0;
         const mv = String(Math.floor(t.total / 60));
         const sv = String(t.total % 60);
-        const focused = dom.min.ownerDocument.activeElement;
-        if (focused !== dom.min && dom.min.value !== mv) dom.min.value = mv;
-        if (focused !== dom.sec && dom.sec.value !== sv) dom.sec.value = sv;
 
-        // 선택된 칩 표시
-        dom.chips.forEach(function (c) {
-          c.classList.toggle('sel', Number(c.dataset.sec) === t.total);
-        });
+        // 같은 상태를 본 창 카드와 PIP 창 카드에 똑같이 그립니다.
+        t.doms.forEach(function (dom) {
+
+          // 숫자
+          if (dom.dm1.textContent !== parts.m[0]) dom.dm1.textContent = parts.m[0];
+          if (dom.dm2.textContent !== parts.m[1]) dom.dm2.textContent = parts.m[1];
+          if (dom.ds1.textContent !== parts.s[0]) dom.ds1.textContent = parts.s[0];
+          if (dom.ds2.textContent !== parts.s[1]) dom.ds2.textContent = parts.s[1];
+
+          // 진행바
+          dom.fill.style.width = pct + '%';
+
+          // 상태 클래스
+          dom.card.classList.toggle('idle', !t.running);
+          dom.card.classList.toggle('paused', !t.running && t.paused !== null);
+          dom.card.classList.toggle('running', t.running);
+          dom.card.classList.toggle('warn', level === 'warn');
+          dom.card.classList.toggle('danger', level === 'danger' || level === 'critical');
+          dom.card.classList.toggle('critical', level === 'critical');
+
+          // 버튼 문구 (아이콘과 글자가 따로라 각각 비교합니다)
+          const wantIco = t.running ? '⏸' : '▶';
+          const wantLbl = t.running ? '일시정지'
+                        : (t.paused !== null && t.paused > 0 ? '이어서 시작' : '시작');
+          if (dom.mainIco.textContent !== wantIco) dom.mainIco.textContent = wantIco;
+          if (dom.mainLbl.textContent !== wantLbl) dom.mainLbl.textContent = wantLbl;
+
+          // 미세 조절 — 0초/60분 경계를 넘는 버튼은 잠급니다
+          dom.steps.forEach(function (b) {
+            const next = t.total + Number(b.dataset.delta);
+            b.disabled = (next < 0 || next > MAX_SECONDS);
+          });
+
+          // 반복 횟수
+          const lapText = t.laps > 0 ? t.laps + '회' : '';
+          if (dom.laps.textContent !== lapText) dom.laps.textContent = lapText;
+          dom.laps.classList.toggle('has', t.laps > 0);
+
+          // 입력칸 (입력 중인 칸은 건드리지 않습니다)
+          // 카드가 창마다 따로 있으므로 activeElement 도 그 카드의 document 로 봅니다.
+          const focused = dom.min.ownerDocument.activeElement;
+          if (focused !== dom.min && dom.min.value !== mv) dom.min.value = mv;
+          if (focused !== dom.sec && dom.sec.value !== sv) dom.sec.value = sv;
+          if (focused !== dom.name && dom.name.value !== t.name) dom.name.value = t.name;
+
+          // 선택된 칩 표시
+          dom.chips.forEach(function (c) {
+            c.classList.toggle('sel', Number(c.dataset.sec) === t.total);
+          });
+        });   // 카드마다 그리기 끝
 
         // 초읽기 소리 (매초 한 번만)
         if (t.running && remain <= DANGER_AT && remain > 0 && t.lastShown !== remain) {
@@ -1536,8 +1533,6 @@
        ========================================================== */
     const supportsDocPiP = ('documentPictureInPicture' in window);
 
-    let pipPlaceholder = null;
-
     function togglePIP() {
       if (supportsDocPiP) return toggleDocPiP();
       return toggleCanvasPiP();     // 미지원 브라우저는 기존 영상 방식으로 대체
@@ -1548,12 +1543,12 @@
 
       // 한 줄 배치에 필요한 폭 = 이름 + 남은시간 + 조절 6칸 + 재생 + 리셋.
       // 더 좁히면 이름칸부터 줄고, 그다음엔 버튼이 다음 줄로 접힙니다.
-      // 높이 = 여백 + 툴바 두 줄 + (담은 줄 56 · 뺀 줄 28) × 개수.
+      // 높이 = 여백 + 툴바 한 줄 + (담은 줄 56 · 뺀 줄 28) × 개수.
       const shown = pipCount();
       const hidden = timers.length - shown;
       const size = {
         width: 560,
-        height: Math.max(150, 20 + 70 + shown * 56 + hidden * 28)
+        height: Math.max(150, 20 + 40 + shown * 56 + hidden * 28)
       };
 
       let win;
@@ -1577,15 +1572,29 @@
       doc.body.append(pf, pt);
       pipSurface = { flash: pf, toasts: pt };
 
-      // 본 화면에는 안내를 남기고, 툴바와 타이머를 통째로 PIP 창으로 옮깁니다.
-      pipPlaceholder = document.createElement('div');
-      pipPlaceholder.className = 'pip-notice';
-      pipPlaceholder.innerHTML =
-        '<strong>PIP 창에서 조작 중입니다</strong><br>' +
-        'PIP 창을 닫으면 타이머가 이 화면으로 돌아옵니다.';
-      el.toolbar.before(pipPlaceholder);
+      // 본 화면은 그대로 두고, PIP 창에 같은 타이머를 한 벌 더 만듭니다.
+      // 상태(timers)를 공유하므로 어느 쪽에서 눌러도 양쪽이 함께 움직입니다.
+      const bar = doc.createElement('div');
+      bar.className = 'toolbar';
+      [['▶ 전체 시작', function () { timers.forEach(start); }],
+       ['⏸ 전체 정지', function () { timers.forEach(pause); }],
+       ['↺ 전체 리셋', function () { timers.forEach(reset); }]
+      ].forEach(function (item) {
+        const b = doc.createElement('button');
+        b.className = 'btn';
+        b.type = 'button';
+        b.textContent = item[0];
+        b.addEventListener('click', item[1]);
+        bar.appendChild(b);
+      });
 
-      doc.body.append(el.toolbar, el.grid);
+      const grid = doc.createElement('main');
+      grid.className = 'grid';
+      timers.forEach(function (t) { grid.appendChild(buildCard(t, doc)); });
+
+      doc.body.append(bar, grid);
+      timers.forEach(applyPipPick);
+      timers.forEach(fitName);
 
       win.addEventListener('pagehide', restoreFromDocPiP);
       el.pipBtn.classList.add('on');
@@ -1596,14 +1605,11 @@
     function restoreFromDocPiP() {
       if (!pipWindow) return;
 
-      // 옮겨갔던 노드를 원래 자리로 되돌립니다.
-      if (pipPlaceholder && pipPlaceholder.parentNode) {
-        pipPlaceholder.replaceWith(el.toolbar, el.grid);
-      } else {
-        document.body.append(el.toolbar, el.grid);
-      }
+      // PIP 창에 만들었던 카드만 목록에서 뗍니다. 본 창 카드는 그대로 있습니다.
+      timers.forEach(function (t) {
+        t.doms = t.doms.filter(function (d) { return d.card.ownerDocument === document; });
+      });
 
-      pipPlaceholder = null;
       pipSurface = null;
       pipWindow = null;
       el.pipBtn.classList.remove('on');
@@ -1696,7 +1702,7 @@
     }
     syncNotifyBtn();
 
-    timers.forEach(function (t) { el.grid.appendChild(buildCard(t)); });
+    timers.forEach(function (t) { el.grid.appendChild(buildCard(t, document)); });
     timers.forEach(applyPipPick);   // 카드가 만들어진 뒤라야 상태를 반영할 수 있습니다
     timers.forEach(fitName);
 
