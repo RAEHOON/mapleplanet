@@ -415,6 +415,25 @@
     .btn-main:active { transform: translateY(3px); box-shadow: 0 1px 0 rgba(0,0,0,.45); }
     .btn-main:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
 
+    /* 지우기 — 되돌릴 수 없는 조작이라 한 톤 낮춰 둡니다 */
+    .btn-clear {
+      flex: 0 0 auto;
+      width: 38px;
+      height: 38px;
+      padding: 0;
+      font-family: var(--font-num);
+      font-size: 1.05rem;
+      color: var(--ink-faint);
+      background: transparent;
+      border: 2px solid var(--line-soft);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: color .15s, border-color .15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn-clear:hover { color: var(--danger); border-color: var(--danger); }
+    .btn-clear:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+
     .btn-reset {
       flex: 0 0 auto;
       width: 46px;
@@ -636,6 +655,13 @@
       box-shadow: none;
     }
 
+    body.pip-mode .btn-clear {
+      width: 24px;
+      height: 24px;
+      font-size: .85rem;
+      border-width: 1px;
+    }
+
     /* 흔들림은 옆 칸을 밀어내므로 한 줄 배치에서는 끕니다. */
     body.pip-mode .card.critical .digits { animation: none; }
 
@@ -737,6 +763,7 @@
     <button class="btn" id="start-all">▶ 전체 시작</button>
     <button class="btn" id="stop-all">⏸ 전체 정지</button>
     <button class="btn" id="reset-all">↺ 전체 다시 시작</button>
+    <button class="btn" id="clear-all">0 전체 지우기</button>
     <button class="btn on" id="sound-btn" aria-pressed="true">🔊 소리 켜짐</button>
     <button class="btn" id="notify-btn">🔔 알림 켜기</button>
     <button class="btn" id="pip-btn">📺 PIP (항상 위)</button>
@@ -1049,6 +1076,18 @@
       renderAll();
     }
 
+    // 멈추고 시간을 0으로 지웁니다.
+    function clearTime(t) {
+      t.running = false;
+      t.endsAt = null;
+      t.paused = null;
+      t.laps = 0;
+      t.lastShown = null;
+      clearTimeout(t.doneTimer);
+      t.doms.forEach(function (d) { d.card.classList.remove('done'); });
+      setTotal(t, 0);   // 저장과 다시 그리기는 setTotal 이 합니다
+    }
+
     // 설정한 시간의 처음으로 되돌리고 곧바로 다시 셉니다.
     // 3분짜리가 10초 남았을 때 누르면 3분부터 다시 시작합니다.
     function restart(t) {
@@ -1262,6 +1301,14 @@
         if (t.running) pause(t); else start(t);
       });
 
+      const clearBtn = doc.createElement('button');
+      clearBtn.className = 'btn-clear';
+      clearBtn.type = 'button';
+      clearBtn.textContent = '0';
+      clearBtn.title = '시간을 0으로 지우기';
+      clearBtn.setAttribute('aria-label', t.name + ' 시간 지우기');
+      clearBtn.addEventListener('click', function () { clearTime(t); });
+
       const resetBtn = doc.createElement('button');
       resetBtn.className = 'btn-reset';
       resetBtn.type = 'button';
@@ -1275,7 +1322,7 @@
       // 다시 시작 버튼은 분초 박스 바로 왼쪽에 둡니다.
       const timeRow = doc.createElement('div');
       timeRow.className = 'time-row';
-      timeRow.append(resetBtn, digits);
+      timeRow.append(clearBtn, resetBtn, digits);
 
       card.append(head, timeRow, bar, chips, steps, manual, controls);
 
@@ -1704,6 +1751,9 @@
     });
     document.getElementById('reset-all').addEventListener('click', function () {
       timers.forEach(restart);
+    });
+    document.getElementById('clear-all').addEventListener('click', function () {
+      timers.forEach(clearTime);
     });
 
     el.soundBtn.addEventListener('click', function () {
