@@ -226,26 +226,43 @@
       height: 62px;
       font-family: var(--font-num);
       font-size: 2.5rem;
+      font-weight: 700;
       line-height: 1;
-      color: var(--accent);
+      text-align: center;
+      padding: 0;
+      /* 숫자 자체는 가장 밝게. 상태는 아래에서 덮어씁니다. */
+      color: var(--ink);
       background: var(--paper-in);
       border: 2px solid var(--line);
       border-radius: var(--radius-sm);
       transition: color .2s, border-color .2s, background .2s;
+      -webkit-tap-highlight-color: transparent;
+      appearance: none;
     }
+    .d:focus {
+      outline: none;
+      border-color: var(--gold);
+      background: #1a1510;
+    }
+    .d::selection { background: var(--gold); color: var(--paper-in); }
 
     .colon {
       font-family: var(--font-num);
       font-size: 2.1rem;
-      color: var(--ink-faint);
+      font-weight: 700;
+      color: var(--ink-dim);
       padding-bottom: 6px;
     }
 
-    /* 대기 상태는 눈에 덜 띄게 */
-    .card.idle .d { color: var(--ink-faint); }
+    /* 대기 상태는 한 톤 낮추되, 읽는 데 지장 없을 만큼만 낮춥니다 */
+    .card.idle .d { color: #a1927a; }
 
-    /* 일시정지는 '대기'와 구분되도록 고유 색을 흐리게 남깁니다 */
-    .card.paused .d { color: var(--base); opacity: .5; }
+    /* 일시정지는 '대기'와 구분되도록 금박으로 남깁니다 */
+    .card.paused .d { color: var(--gold); }
+
+    /* 임박하면 숫자 색이 곧 경고입니다 */
+    .card.warn .d   { color: var(--warn); }
+    .card.danger .d { color: var(--danger); }
 
     /* ---------- EXP 바 스타일 진행바 ---------- */
     .bar {
@@ -420,7 +437,7 @@
     }
     @keyframes digit-blink {
       0%,  49% { color: var(--danger);  background: var(--paper-in); border-color: var(--danger); }
-      50%,100% { color: var(--paper-in); background: var(--danger);  border-color: var(--line); }
+      50%,100% { color: #1c1813;        background: var(--danger);  border-color: var(--danger); }
     }
 
     .card.danger {
@@ -687,7 +704,7 @@
       .card.critical .digits,
       .card.done,
       #flash.on { animation: none !important; }
-      .card.danger .d { color: #fff; background: var(--danger); border-color: #ffb3b3; }
+      .card.danger .d { color: #1c1813; background: var(--danger); border-color: var(--danger); }
     }
   </style>
 </head>
@@ -1097,8 +1114,7 @@
       /* --- 시간 표시 (자릿수 타일) --- */
       const digits = doc.createElement('div');
       digits.className = 'digits';
-      digits.setAttribute('role', 'timer');
-      digits.setAttribute('aria-live', 'off');
+      digits.setAttribute('aria-label', '남은 시간 · 분과 초를 직접 칠 수 있습니다');
 
       const dm1 = mkDigit(doc), dm2 = mkDigit(doc);
       const colon = doc.createElement('span');
@@ -1106,6 +1122,43 @@
       colon.textContent = ':';
       const ds1 = mkDigit(doc), ds2 = mkDigit(doc);
       digits.append(dm1, dm2, colon, ds1, ds2);
+
+      // 네모 안에 숫자를 바로 칩니다. 한 칸을 채우면 다음 칸으로 넘어갑니다.
+      const boxes = [dm1, dm2, ds1, ds2];
+
+      function readBoxes() {
+        const v = boxes.map(function (b) {
+          const c = (b.value || '0').replace(/\D/g, '').slice(-1);
+          return c === '' ? '0' : c;
+        });
+        setTotal(t, (Number(v[0]) * 10 + Number(v[1])) * 60 + Number(v[2]) * 10 + Number(v[3]));
+      }
+
+      boxes.forEach(function (box, i) {
+        box.addEventListener('focus', function () { box.select(); });
+        box.addEventListener('input', function () {
+          const digit = (box.value || '').replace(/\D/g, '').slice(-1);
+          box.value = digit;
+          if (digit && i < boxes.length - 1) {
+            boxes[i + 1].focus();
+            boxes[i + 1].select();
+          }
+          if (digit) readBoxes();
+        });
+        box.addEventListener('keydown', function (e) {
+          if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+            e.preventDefault();
+            setTotal(t, t.total + (e.key === 'ArrowUp' ? 1 : -1));
+            return;
+          }
+          if (e.key === 'ArrowLeft' && i > 0) { e.preventDefault(); boxes[i - 1].focus(); boxes[i - 1].select(); }
+          if (e.key === 'ArrowRight' && i < boxes.length - 1) { e.preventDefault(); boxes[i + 1].focus(); boxes[i + 1].select(); }
+          if (e.key === 'Backspace' && !box.value && i > 0) { e.preventDefault(); boxes[i - 1].focus(); boxes[i - 1].select(); }
+        });
+        box.addEventListener('blur', function () {
+          if (!box.value) readBoxes();   // 비워 둔 칸은 0으로 되돌립니다
+        });
+      });
 
       /* --- 진행바 --- */
       const bar = doc.createElement('div');
@@ -1247,10 +1300,15 @@
       return timers.filter(function (t) { return t.inPip; }).length;
     }
 
-    function mkDigit() {
-      const d = document.createElement('span');
+    // doc 을 받아야 PIP 창의 노드를 그 창에서 만듭니다.
+    function mkDigit(doc) {
+      const d = doc.createElement('input');
       d.className = 'd';
-      d.textContent = '0';
+      d.type = 'text';
+      d.inputMode = 'numeric';
+      d.maxLength = 1;
+      d.autocomplete = 'off';
+      d.value = '0';
       return d;
     }
 
@@ -1272,11 +1330,12 @@
         // 같은 상태를 본 창 카드와 PIP 창 카드에 똑같이 그립니다.
         t.doms.forEach(function (dom) {
 
-          // 숫자
-          if (dom.dm1.textContent !== parts.m[0]) dom.dm1.textContent = parts.m[0];
-          if (dom.dm2.textContent !== parts.m[1]) dom.dm2.textContent = parts.m[1];
-          if (dom.ds1.textContent !== parts.s[0]) dom.ds1.textContent = parts.s[0];
-          if (dom.ds2.textContent !== parts.s[1]) dom.ds2.textContent = parts.s[1];
+          // 숫자 — 지금 치고 있는 칸은 덮어쓰지 않습니다
+          const act = dom.dm1.ownerDocument.activeElement;
+          const want = [parts.m[0], parts.m[1], parts.s[0], parts.s[1]];
+          [dom.dm1, dom.dm2, dom.ds1, dom.ds2].forEach(function (box, i) {
+            if (box !== act && box.value !== want[i]) box.value = want[i];
+          });
 
           // 진행바
           dom.fill.style.width = pct + '%';

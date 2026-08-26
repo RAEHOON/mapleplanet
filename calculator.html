@@ -7,7 +7,7 @@
   <meta name="description" content="택배·자유시장·경매장 시세를 비교해 메소를 가장 싸게 구하는 방법을 찾습니다. 캐시템은 현금 직구와 경매장 구매 중 어느 쪽이 싼지도 알려줍니다.">
   <meta property="og:title" content="메소 환율 계산기">
   <meta property="og:description" content="업자 시세를 비교해 메소를 가장 싸게 구하는 방법을 찾습니다.">
-  <meta name="theme-color" content="#ddcfb0">
+  <meta name="theme-color" content="#1c1813">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700;800&family=Bitter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -16,27 +16,29 @@
        디자인 토큰 — 양피지에 먹색. 모서리는 전부 각지게(라운드 0).
        ============================================================ */
     :root {
-      --paper-deep: #ddcfb0;   /* 지면 바탕 */
-      --paper:      #f7f1e2;   /* 카드·패널 */
-      --paper-in:   #fffcf4;   /* 입력칸 */
-      --paper-band: #ece0c6;   /* 강조 행 */
-      --paper-warm: #efe3cb;   /* 보조 상자 */
+      --paper-deep: #1c1813;   /* 지면 바탕 */
+      --paper:      #262019;   /* 카드·패널 */
+      --paper-in:   #100d09;   /* 입력칸 */
+      --paper-band: #332c22;   /* 강조 행 */
+      --paper-warm: #2f2820;   /* 보조 상자 */
 
-      --ink:        #201a13;
-      --ink-mid:    #514536;
-      --ink-soft:   #6b5f4d;
-      --ink-faint:  #9a8e79;
+      --ink:        #f6edd8;
+      --ink-mid:    #c3b492;
+      --ink-soft:   #9b8a6a;
+      --ink-faint:  #6f6249;
 
-      --rule:       #c3b08c;   /* 가는 괘선 */
+      --line:       #6a5c46;   /* 테두리 */
+      --rule:       #443a2c;   /* 가는 괘선 */
+      --gold:       #dcbb4c;   /* 금박 — 굵은 괘선과 주 버튼 */
 
-      --seal:       #8f2f22;   /* 인장 붉은색 */
-      --seal-bg:    #f0dfd9;
+      --seal:       #cc5f42;   /* 인장 주홍 */
+      --seal-bg:    #3a201a;
 
       /* 거래 경로별 색 */
-      --parcel:     #23404f;
-      --market:     #6b4a2b;
-      --auction:    #8a6a1f;
-      --cash:       #8f2f22;
+      --parcel:     #85b6d4;
+      --market:     #d1a06a;
+      --auction:    #dcbb4c;
+      --cash:       #e08163;
 
       --font-ui:    'Nanum Myeongjo', 'Batang', serif;
       --font-num:   'Bitter', 'Nanum Myeongjo', Georgia, serif;
@@ -78,14 +80,14 @@
       align-items: center;
       min-height: 44px;
       padding: 0 16px;
-      border: 2px solid var(--ink);
+      border: 2px solid var(--line);
       background: var(--paper);
       color: var(--ink);
       text-decoration: none;
       font-size: 15px;
       font-weight: 700;
     }
-    .home:hover { background: var(--ink); color: var(--paper); }
+    .home:hover { background: var(--line); color: var(--ink); }
     .home:focus-visible { outline: 3px solid var(--seal); outline-offset: 2px; }
 
     .eyebrow {
@@ -96,15 +98,15 @@
 
     header {
       text-align: center;
-      border-top: 4px solid var(--ink);
-      border-bottom: 4px solid var(--ink);
+      border-top: 4px solid var(--gold);
+      border-bottom: 4px solid var(--gold);
       margin-bottom: 30px;
     }
 
     h1 {
       margin: 0;
       padding: 22px 8px 8px;
-      border-bottom: 1px solid var(--ink);
+      border-bottom: 1px solid var(--line);
       font-size: clamp(1.7rem, 5.5vw, 2.7rem);
       font-weight: 800;
       letter-spacing: .12em;
@@ -132,7 +134,7 @@
     .card {
       --accent: var(--ink);
       background: var(--paper);
-      border: 2px solid var(--ink);
+      border: 2px solid var(--line);
       border-top: 9px solid var(--accent);
       padding: 15px 15px 17px;
     }
@@ -148,7 +150,7 @@
     .card .fee {
       margin: 5px 0 0;
       padding-bottom: 9px;
-      border-bottom: 2px solid var(--ink);
+      border-bottom: 2px solid var(--line);
       font-size: 12px;
       color: var(--ink-soft);
     }
@@ -173,7 +175,7 @@
       font-weight: 700;
       color: var(--ink);
       background: var(--paper-in);
-      border: 2px solid var(--ink);
+      border: 2px solid var(--line);
       border-radius: 0;
       -webkit-tap-highlight-color: transparent;
     }
@@ -210,15 +212,15 @@
       padding: 9px 19px;
       color: var(--ink);
       background: var(--paper);
-      border: 2px solid var(--ink);
+      border: 2px solid var(--line);
       border-radius: 0;
       cursor: pointer;
       -webkit-tap-highlight-color: transparent;
     }
     .btn:hover { background: var(--paper-band); }
-    .btn:active { background: var(--ink); color: var(--paper); }
+    .btn:active { background: var(--line); color: var(--ink); }
     .btn:focus-visible { outline: 3px solid var(--seal); outline-offset: 2px; }
-    .btn.primary { background: var(--ink); color: var(--paper); }
+    .btn.primary { background: var(--gold); color: var(--paper-in); border-color: var(--gold); }
     .btn.primary:hover { background: #392f22; }
 
     /* ============================================================
@@ -226,7 +228,7 @@
        ============================================================ */
     .panel {
       background: var(--paper);
-      border: 2px solid var(--ink);
+      border: 2px solid var(--line);
       padding: 17px 19px 20px;
       margin-bottom: 22px;
     }
@@ -244,14 +246,14 @@
       content: "";
       width: 12px;
       height: 12px;
-      background: var(--ink);
+      background: var(--gold);
       flex-shrink: 0;
     }
 
     .panel > .hint {
       margin: 9px 0 0;
       padding-bottom: 11px;
-      border-bottom: 4px solid var(--ink);
+      border-bottom: 4px solid var(--gold);
       font-size: 13px;
       color: var(--ink-soft);
       line-height: 1.7;
@@ -270,7 +272,7 @@
       color: var(--ink-mid);
       text-align: right;
       padding: 0 8px 8px;
-      border-bottom: 2px solid var(--ink);
+      border-bottom: 2px solid var(--line);
       white-space: nowrap;
     }
     th:first-child { text-align: left; }
@@ -311,7 +313,7 @@
       flex-wrap: wrap;
       margin: 0 0 2px;
       padding-bottom: 7px;
-      border-bottom: 2px solid var(--ink);
+      border-bottom: 2px solid var(--line);
       font-size: 17px;
       font-weight: 800;
       letter-spacing: .06em;
@@ -373,7 +375,7 @@
     .tag {
       display: inline-block;
       padding: 3px 9px;
-      border: 2px solid var(--ink);
+      border: 2px solid var(--line);
       font-family: var(--font-ui);
       font-size: 13px;
       font-weight: 700;

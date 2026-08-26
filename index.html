@@ -7,7 +7,7 @@
   <meta name="description" content="메소 환율 계산기와 유혹 타이머. 브라우저에서 바로 쓰는 비공식 팬 도구입니다.">
   <meta property="og:title" content="메이플 도구모음">
   <meta property="og:description" content="메소 환율 계산기와 유혹 타이머를 한 곳에서.">
-  <meta name="theme-color" content="#ddcfb0">
+  <meta name="theme-color" content="#1c1813">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700;800&family=Bitter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -16,18 +16,20 @@
        디자인 토큰 — 계산기·타이머와 같은 값을 씁니다.
        ============================================================ */
     :root {
-      --paper-deep: #ddcfb0;   /* 지면 */
-      --paper:      #f7f1e2;   /* 카드 */
-      --paper-band: #ece0c6;   /* 눌린 상태 */
+      --paper-deep: #1c1813;   /* 지면 */
+      --paper:      #262019;   /* 카드 */
+      --paper-band: #332c22;   /* 눌린 상태 */
 
-      --ink:        #201a13;
-      --ink-mid:    #514536;
-      --ink-soft:   #6b5f4d;
+      --ink:        #f6edd8;
+      --ink-mid:    #c3b492;
+      --ink-soft:   #9b8a6a;
 
-      --rule:       #c3b08c;
+      --line:       #6a5c46;   /* 테두리 */
+      --rule:       #443a2c;
+      --gold:       #dcbb4c;   /* 금박 — 굵은 괘선 */
 
-      --seal:       #8f2f22;   /* 계산기 */
-      --indigo:     #23404f;   /* 타이머 */
+      --seal:       #e08163;   /* 계산기 */
+      --indigo:     #85b6d4;   /* 타이머 */
 
       --font-ui:  'Nanum Myeongjo', 'Batang', serif;
       --font-num: 'Bitter', 'Nanum Myeongjo', Georgia, serif;
@@ -73,15 +75,15 @@
 
     header {
       text-align: center;
-      border-top: 4px solid var(--ink);
-      border-bottom: 4px solid var(--ink);
+      border-top: 4px solid var(--gold);
+      border-bottom: 4px solid var(--gold);
       margin-bottom: 34px;
     }
 
     h1 {
       margin: 0;
       padding: 24px 8px 9px;
-      border-bottom: 1px solid var(--ink);
+      border-bottom: 1px solid var(--line);
       font-size: clamp(1.9rem, 6vw, 2.9rem);
       font-weight: 800;
       letter-spacing: .14em;
@@ -120,9 +122,9 @@
       color: inherit;
 
       background: var(--paper);
-      border: 2px solid var(--ink);
+      border: 2px solid var(--line);
       border-top: 9px solid var(--accent);
-      box-shadow: 5px 5px 0 rgba(32, 26, 19, .14);
+      box-shadow: 5px 5px 0 rgba(0, 0, 0, .45);
 
       transition: transform .1s, box-shadow .1s, background .15s;
     }
@@ -130,12 +132,12 @@
     .tile:hover {
       background: var(--paper-band);
       transform: translate(-2px, -2px);
-      box-shadow: 8px 8px 0 rgba(32, 26, 19, .18);
+      box-shadow: 8px 8px 0 rgba(0, 0, 0, .5);
     }
 
     .tile:active {
       transform: translate(2px, 2px);
-      box-shadow: 2px 2px 0 rgba(32, 26, 19, .2);
+      box-shadow: 2px 2px 0 rgba(0, 0, 0, .5);
     }
 
     .tile:focus-visible {
@@ -151,7 +153,7 @@
       letter-spacing: .06em;
       color: var(--accent);
       padding-bottom: 12px;
-      border-bottom: 2px solid var(--ink);
+      border-bottom: 2px solid var(--line);
       width: 100%;
     }
 
