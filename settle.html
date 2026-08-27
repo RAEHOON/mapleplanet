@@ -46,7 +46,7 @@
 
     body {
       margin: 0;
-      padding: 22px 16px 60px;
+      padding: 12px 16px 12px;
       font-family: var(--font-ui);
       color: var(--ink);
       background: var(--paper-deep);
@@ -70,7 +70,7 @@
       align-items: center;
       justify-content: space-between;
       gap: 16px;
-      margin-bottom: 20px;
+      margin-bottom: 12px;
     }
 
     .home {
@@ -94,18 +94,19 @@
       letter-spacing: .18em;
     }
 
+    /* 결과까지 한 화면에 들어오도록 다른 도구보다 표제부를 낮게 잡습니다 */
     header {
       text-align: center;
       border-top: 4px solid var(--gold);
       border-bottom: 4px solid var(--gold);
-      margin-bottom: 30px;
+      margin-bottom: 16px;
     }
 
     h1 {
       margin: 0;
-      padding: 22px 8px 8px;
+      padding: 9px 8px 5px;
       border-bottom: 1px solid var(--line);
-      font-size: clamp(1.7rem, 5.5vw, 2.7rem);
+      font-size: clamp(1.2rem, 3vw, 1.6rem);
       font-weight: 800;
       letter-spacing: .12em;
       text-wrap: balance;
@@ -113,9 +114,9 @@
 
     .subtitle {
       margin: 0;
-      padding: 9px 8px 18px;
+      padding: 5px 8px 8px;
       color: var(--ink-mid);
-      font-size: 15px;
+      font-size: 12px;
       letter-spacing: .02em;
     }
 
@@ -125,8 +126,8 @@
     .cards {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(272px, 1fr));
-      gap: 16px;
-      margin-bottom: 22px;
+      gap: 14px;
+      margin-bottom: 10px;
       align-items: start;
     }
 
@@ -140,7 +141,7 @@
       background: var(--paper);
       border: 2px solid var(--line);
       border-top: 9px solid var(--accent);
-      padding: 15px 15px 17px;
+      padding: 12px 14px 13px;
     }
 
     .card h2 {
@@ -165,7 +166,7 @@
       grid-template-columns: 1fr 116px 46px;
       align-items: center;
       gap: 9px;
-      margin-top: 11px;
+      margin-top: 6px;
     }
     .field > label { font-size: 13px; color: var(--ink-mid); }
     .field > .unit { font-size: 12px; color: var(--ink-soft); }
@@ -192,8 +193,8 @@
 
     /* 카드 하단 요약 상자 */
     .note {
-      margin: 13px 0 0;
-      padding: 9px 11px;
+      margin: 9px 0 0;
+      padding: 7px 11px;
       border: 2px solid var(--accent);
       background: var(--paper-warm);
       font-family: var(--font-num);
@@ -206,7 +207,7 @@
     /* ============================================================
        버튼
        ============================================================ */
-    .toolbar { display: flex; flex-wrap: wrap; gap: 9px; margin: 0 0 22px; }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 9px; margin: 0 0 12px; }
 
     .btn {
       font-family: var(--font-ui);
@@ -233,23 +234,23 @@
     .panel {
       background: var(--paper);
       border: 2px solid var(--line);
-      padding: 17px 19px 20px;
-      margin-bottom: 22px;
+      padding: 13px 16px 14px;
+      margin-bottom: 14px;
     }
 
     .panel > h2 {
       display: flex;
       align-items: center;
-      gap: 11px;
+      gap: 10px;
       margin: 0;
-      font-size: 20px;
+      font-size: 16px;
       font-weight: 800;
       letter-spacing: .08em;
     }
     .panel > h2::before {
       content: "";
-      width: 12px;
-      height: 12px;
+      width: 10px;
+      height: 10px;
       background: var(--gold);
       flex-shrink: 0;
     }
@@ -311,8 +312,27 @@
     /* ============================================================
        결과
        ============================================================ */
-    #out .section { margin-top: 26px; }
-    #out .section:first-child { margin-top: 18px; }
+    #out .section { margin-top: 8px; }
+
+    /* 결과 머리줄 오른쪽의 작은 버튼 (결과 복사 · 입력 지우기) */
+    .h2-tools { margin-left: auto; display: flex; gap: 7px; }
+    .h2-tools .btn {
+      min-height: 30px;
+      padding: 3px 12px;
+      font-size: 13px;
+      letter-spacing: 0;
+    }
+
+    /* 넓은 화면에서는 결과 네 절을 2단으로 — 한 화면에 다 들어오게 */
+    @media (min-width: 920px) {
+      #out {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0 30px;
+        align-items: start;
+      }
+      #out > .notice, #out > .error { grid-column: 1 / -1; }
+    }
 
     #out h3 {
       display: flex;
@@ -320,9 +340,9 @@
       gap: 10px;
       flex-wrap: wrap;
       margin: 0 0 2px;
-      padding-bottom: 7px;
+      padding-bottom: 5px;
       border-bottom: 2px solid var(--line);
-      font-size: 17px;
+      font-size: 15px;
       font-weight: 800;
       letter-spacing: .06em;
     }
@@ -337,29 +357,29 @@
     .r {
       display: grid;
       gap: 3px 14px;
-      padding: 11px 10px;
+      padding: 5px 8px;
       border-bottom: 1px solid var(--rule);
       font-family: var(--font-num);
       font-variant-numeric: tabular-nums lining-nums;
-      font-size: 17px;
+      font-size: 15px;
       align-items: baseline;
     }
     .r:last-child { border-bottom: none; }
-    .r .lbl { font-family: var(--font-ui); font-size: 16px; color: var(--ink); }
+    .r .lbl { font-family: var(--font-ui); font-size: 14px; color: var(--ink); }
     .r .num { text-align: right; }
-    .r .sub { color: var(--ink-soft); font-size: 13px; font-weight: 400; }
+    .r .sub { color: var(--ink-soft); font-size: 12px; font-weight: 400; }
 
     /* 최선 — 지면을 한 톤 눌러 깔고 굵게 */
-    .r.best { background: var(--paper-band); font-size: 19px; font-weight: 700; }
-    .r.best .lbl { font-size: 18px; font-weight: 800; }
+    .r.best { background: var(--paper-band); font-size: 17px; font-weight: 700; }
+    .r.best .lbl { font-size: 15px; font-weight: 800; }
 
     .r.bad { background: var(--seal-bg); font-weight: 700; }
     .r.bad .lbl { font-weight: 800; }
 
-    .r.dim { font-size: 14px; color: var(--ink-mid); }
-    .r.dim .lbl { font-size: 13px; color: var(--ink-soft); }
+    .r.dim { font-size: 13px; color: var(--ink-mid); }
+    .r.dim .lbl { font-size: 12px; color: var(--ink-soft); }
 
-    .r.kv { grid-template-columns: 158px 1fr; }
+    .r.kv { grid-template-columns: 128px 1fr; }
 
     /* 인장 — 색을 못 보더라도 구분되도록 글자를 함께 찍습니다. */
     .seal {
@@ -412,13 +432,20 @@
     }
 
     footer {
-      margin-top: 40px;
-      padding-top: 20px;
+      margin-top: 8px;
+      padding-top: 8px;
       border-top: 1px solid var(--rule);
       text-align: center;
       color: var(--ink-soft);
-      font-size: 13px;
-      line-height: 1.9;
+      font-size: 12px;
+      line-height: 1.7;
+    }
+
+    /* 넓은 화면 — 마우스 환경이라 입력칸을 한 단 낮춥니다 */
+    @media (min-width: 920px) {
+      input[type="text"] { min-height: 36px; font-size: 17px; padding: 5px 10px; }
+      .btn { min-height: 38px; padding: 6px 16px; }
+      .cut, .del { min-height: 38px; }
     }
 
     /* ============================================================
@@ -516,18 +543,17 @@
          결과
          ======================================================== -->
     <div class="panel">
-      <h2>결과</h2>
+      <h2>결과
+        <span class="h2-tools">
+          <button class="btn" id="copy">결과 복사</button>
+          <button class="btn" id="reset">입력 지우기</button>
+        </span>
+      </h2>
       <div id="out"></div>
     </div>
 
-    <div class="toolbar">
-      <button class="btn" id="copy">결과 복사</button>
-      <button class="btn" id="reset">입력 지우기</button>
-    </div>
-
     <footer>
-      입력값은 이 브라우저에 저장되어 새로고침해도 유지됩니다.<br>
-      이 페이지는 넥슨코리아와 무관한 비공식 팬 페이지입니다.
+      입력값은 이 브라우저에 저장됩니다 · 넥슨코리아와 무관한 비공식 팬 페이지입니다
     </footer>
   </div>
 
