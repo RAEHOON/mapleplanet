@@ -47,7 +47,7 @@
 
     body {
       margin: 0;
-      padding: 22px 16px 60px;
+      padding: 16px 16px 32px;
       font-family: var(--font-ui);
       color: var(--ink);
       background: var(--paper-deep);
@@ -72,7 +72,7 @@
       align-items: center;
       justify-content: space-between;
       gap: 16px;
-      margin-bottom: 20px;
+      margin-bottom: 12px;
     }
 
     .home {
@@ -100,14 +100,14 @@
       text-align: center;
       border-top: 4px solid var(--gold);
       border-bottom: 4px solid var(--gold);
-      margin-bottom: 30px;
+      margin-bottom: 18px;
     }
 
     h1 {
       margin: 0;
-      padding: 22px 8px 8px;
+      padding: 13px 8px 7px;
       border-bottom: 1px solid var(--line);
-      font-size: clamp(1.7rem, 5.5vw, 2.7rem);
+      font-size: clamp(1.4rem, 4vw, 1.9rem);
       font-weight: 800;
       letter-spacing: .12em;
       text-wrap: balance;
@@ -115,9 +115,9 @@
 
     .subtitle {
       margin: 0;
-      padding: 9px 8px 18px;
+      padding: 6px 8px 11px;
       color: var(--ink-mid);
-      font-size: 15px;
+      font-size: 13px;
       letter-spacing: .02em;
     }
 
@@ -128,7 +128,7 @@
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(272px, 1fr));
       gap: 16px;
-      margin-bottom: 22px;
+      margin-bottom: 16px;
     }
 
     .card {
@@ -188,8 +188,8 @@
 
     /* 카드 하단 요약 상자 */
     .note {
-      margin: 13px 0 0;
-      padding: 9px 11px;
+      margin: 9px 0 0;
+      padding: 7px 11px;
       border: 2px solid var(--accent);
       background: var(--paper-warm);
       font-family: var(--font-num);
@@ -229,12 +229,12 @@
     .mode-tabs {
       display: flex;
       max-width: 420px;
-      margin: 0 auto 24px;
+      margin: 0 auto 16px;
     }
 
     .mode-tab {
       flex: 1;
-      min-height: 48px;
+      min-height: 44px;
       font-family: var(--font-ui);
       font-size: 17px;
       font-weight: 700;
@@ -261,8 +261,18 @@
     .field2 > label { font-size: 13px; color: var(--ink-mid); }
     .field2 .unit { font-size: 12px; color: var(--ink-soft); white-space: nowrap; }
 
-    /* 판매 결과 표 (판매량 · 수수료 · 햄구이 · 실질) */
-    .r.sell { grid-template-columns: 1fr 170px 190px 150px; }
+    /* 판매 결과 — 택배와 직거래를 한 표에 (판매량 · 택배 수수료/햄구이 · 직거래 수령/햄구이) */
+    .r.sell5 { grid-template-columns: 90px 150px 1fr 150px 1fr; }
+
+    #sellOut .section { margin-top: 8px; }
+    #sellOut .r { padding: 5px 8px; font-size: 15px; }
+    #sellOut .r .lbl { font-size: 14px; }
+    #sellOut .r.best { font-size: 16px; }
+    #sellOut .r.best .lbl { font-size: 15px; }
+
+    /* 결과 패널 머리줄 오른쪽의 작은 버튼 */
+    .h2-tools { margin-left: auto; display: flex; gap: 7px; }
+    .h2-tools .btn { min-height: 32px; padding: 4px 12px; font-size: 13px; }
 
     /* ============================================================
        패널 (아이템 표 · 결과)
@@ -270,8 +280,8 @@
     .panel {
       background: var(--paper);
       border: 2px solid var(--line);
-      padding: 17px 19px 20px;
-      margin-bottom: 22px;
+      padding: 14px 16px 15px;
+      margin-bottom: 18px;
     }
 
     .panel > h2 {
@@ -461,13 +471,21 @@
     }
 
     footer {
-      margin-top: 40px;
-      padding-top: 20px;
+      margin-top: 16px;
+      padding-top: 12px;
       border-top: 1px solid var(--rule);
       text-align: center;
       color: var(--ink-soft);
       font-size: 13px;
       line-height: 1.9;
+    }
+
+    /* 넓은 화면 — 마우스 환경이라 입력칸과 카드 여백을 한 단 낮춥니다 */
+    @media (min-width: 920px) {
+      input[type="text"] { min-height: 36px; font-size: 17px; padding: 5px 10px; }
+      .card { padding: 12px 14px 13px; }
+      .field, .field2 { margin-top: 8px; }
+      .btn { min-height: 38px; padding: 6px 16px; }
     }
 
     /* ============================================================
@@ -520,10 +538,11 @@
       .r.cube .num { text-align: left; }
       .r.cmp  { grid-template-columns: 1fr 1fr; }
       .r.cmp .num { text-align: left; }
-      .r.sell { grid-template-columns: 1fr 1fr; }
-      .r.sell .num { text-align: left; }
+      /* 판매 표는 머리글까지 같은 모양으로 접혀 짝이 맞습니다 */
+      .r.sell5 { grid-template-columns: 1fr 1fr; }
+      .r.sell5 .num { text-align: left; }
       /* 칸이 접히면 머리글 줄이 오히려 헷갈립니다 */
-      .r.cmp.hdr, .r.sell.hdr { display: none; }
+      .r.cmp.hdr { display: none; }
       .field { grid-template-columns: 1fr 130px 44px; }
       body { padding: 18px 10px 48px; }
       .cards { gap: 12px; }
@@ -538,7 +557,7 @@
   <div class="wrap">
     <div class="topbar">
       <a class="home" href="index.html">← 뒤로가기</a>
-      <span class="eyebrow">메이플 도구모음</span>
+      <span class="eyebrow">플래닛 도우미</span>
     </div>
 
     <header>
@@ -719,19 +738,18 @@
       </div>
 
       <div class="panel">
-        <h2>판매 결과</h2>
+        <h2>판매 결과
+          <span class="h2-tools">
+            <button class="btn" id="copySell">결과 복사</button>
+          </span>
+        </h2>
         <div id="sellOut"></div>
-      </div>
-
-      <div class="toolbar">
-        <button class="btn" id="copySell">결과 복사</button>
       </div>
 
     </div><!-- /sell-view -->
 
     <footer>
-      입력값은 이 브라우저에 저장되어 새로고침해도 유지됩니다.<br>
-      이 페이지는 넥슨코리아와 무관한 비공식 팬 페이지입니다.
+      입력값은 이 브라우저에 저장됩니다 · 넥슨코리아와 무관한 비공식 팬 페이지입니다
     </footer>
   </div>
 
@@ -1297,7 +1315,7 @@
       }
 
       const custom = Math.round(eok * 1e8 + man * 1e4);
-      const amounts = [5e7, 1e8, 2e8, 3e8, 5e8, 1e9];
+      const amounts = [5e7, 1e8, 3e8, 5e8, 1e9];
       if (custom > 0 && amounts.indexOf(custom) === -1) {
         amounts.push(custom);
         amounts.sort(function (a, b) { return a - b; });
@@ -1308,57 +1326,35 @@
           '직거래로 팔면 햄구이 ' + fmt(Math.round(price * custom * (1 - FEE_FM) / 1e6)) + '개';
       }
 
-      /* ---- 택배로 팔 때 ---- */
-      let s = section('택배로 팔 때', '수수료 8% + 택배비 1만은 파는 쪽 부담 · 상대는 보낸 만큼 받습니다');
-      s.appendChild(row('sell dim hdr', [
+      /* ---- 한 표로: 택배와 직거래를 나란히 ---- */
+      const s = section('팔면 얼마 받나',
+        '택배: 수수료 8%+택배비 1만은 내 부담, 상대는 보낸 만큼 받음 · 직거래: 6%는 받는 쪽이 떼이고 받은 만큼 쳐줌');
+      s.appendChild(row('sell5 dim hdr', [
         { cls: 'lbl', text: '판매량' },
-        { text: '내가 내는 수수료' },
-        { text: '받는 햄구이' },
-        { text: '실질 100만당' }
+        { text: '택배 수수료' },
+        { text: '택배 햄구이' },
+        { text: '직거래 상대 수령' },
+        { text: '직거래 햄구이' }
       ]));
       amounts.forEach(function (x) {
         const fee = x * FEE_PARCEL + PARCEL_BASE;
-        s.appendChild(row('sell' + (x === custom ? ' best' : ''), [
-          { cls: 'lbl', html: (x === custom ? '<span class="seal">입력</span>' : '') + sellAmt(x) + ' 팔면' },
+        const recv = x * (1 - FEE_FM);
+        s.appendChild(row('sell5' + (x === custom ? ' best' : ''), [
+          { cls: 'lbl', html: (x === custom ? '<span class="seal">입력</span>' : '') + sellAmt(x) },
           { text: '− ' + mesoShort(fee) },
           { text: ham(price * x / 1e6) },
-          { text: fmt(price * x / (x + fee), 1) + '개' }
-        ]));
-      });
-      out.appendChild(s);
-
-      /* ---- 직거래로 팔 때 ---- */
-      s = section('직거래로 팔 때', '교환 수수료 6%는 받는 쪽이 떼입니다 · 돈은 상대가 받은 만큼 쳐줍니다');
-      s.appendChild(row('sell dim hdr', [
-        { cls: 'lbl', text: '건네는 양' },
-        { text: '상대가 받는 양' },
-        { text: '받는 햄구이' },
-        { text: '실질 100만당' }
-      ]));
-      amounts.forEach(function (x) {
-        const recv = x * (1 - FEE_FM);
-        s.appendChild(row('sell' + (x === custom ? ' best' : ''), [
-          { cls: 'lbl', html: (x === custom ? '<span class="seal">입력</span>' : '') + sellAmt(x) + ' 건네면' },
           { text: mesoShort(recv) },
-          { text: ham(price * recv / 1e6) },
-          { text: fmt(price * (1 - FEE_FM), 1) + '개' }
+          { text: ham(price * recv / 1e6) }
         ]));
       });
+      s.appendChild(row('kv best', [
+        { cls: 'lbl', html: '<span class="seal">유리</span>실질 100만당' },
+        { text: '직거래 ' + fmt(price * (1 - FEE_FM), 1) + '개  ·  택배 최대 ' +
+                fmt(price / (1 + FEE_PARCEL), 1) + '개 + 택배비 1만' }
+      ]));
       s.appendChild(row('dim kv', [
         { cls: 'lbl', text: '참고' },
         { text: '상대에게 정확한 양을 주기로 했다면 그 양 ÷ 0.94 를 건네세요 (1억을 주려면 약 1억 638만)' }
-      ]));
-      out.appendChild(s);
-
-      /* ---- 어느 쪽이 남는가 ---- */
-      s = section('어느 쪽이 남는가', '같은 메소를 쓸 때 손에 쥐는 햄구이');
-      s.appendChild(row('kv best', [
-        { cls: 'lbl', html: '<span class="seal">유리</span>직거래' },
-        { text: '100만당 ' + fmt(price * (1 - FEE_FM), 1) + '개 — 수수료 6%만 떼입니다' }
-      ]));
-      s.appendChild(row('kv', [
-        { cls: 'lbl', text: '택배' },
-        { text: '100만당 최대 ' + fmt(price / (1 + FEE_PARCEL), 1) + '개 — 수수료 8% + 택배비 1만' }
       ]));
       out.appendChild(s);
     }

@@ -74,12 +74,12 @@ module.exports = async (req, res) => {
     ]);
     const day = results[0][0] || { pageviews: 0, visitors: 0 };
 
-    const subject = '[메이플 도구모음] ' + yesterday + ' 트래픽 — 방문자 ' +
+    const subject = '[플래닛 도우미] ' + yesterday + ' 트래픽 — 방문자 ' +
                     fmt(day.visitors) + ' · 조회 ' + fmt(day.pageviews);
 
     const html =
       '<div style="font-family:sans-serif;max-width:520px">' +
-      '<h2 style="margin:0 0 4px">메이플 도구모음 일일 리포트</h2>' +
+      '<h2 style="margin:0 0 4px">플래닛 도우미 일일 리포트</h2>' +
       '<p style="margin:0 0 14px;color:#888">' + yesterday +
       ' (한국시간 어제 오전 9시 ~ 오늘 오전 9시)</p>' +
       '<p style="font-size:17px;margin:0">방문자 <b>' + fmt(day.visitors) +
@@ -97,7 +97,7 @@ module.exports = async (req, res) => {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        from: '메이플 도구모음 <onboarding@resend.dev>',
+        from: '플래닛 도우미 <onboarding@resend.dev>',
         to: [to],
         subject: subject,
         html: html
