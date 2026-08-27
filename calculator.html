@@ -263,9 +263,10 @@
 
     /* 판매 결과 — 택배와 직거래를 한 표에 (판매량 · 택배 수수료/햄구이 · 직거래 수령/햄구이)
        열 너비를 내용에 맞춰 고정하고 왼쪽으로 모읍니다. 부모 폭에 늘리면 글씨가 뿔뿔이 흩어집니다. */
+    /* 가운데 칸이 남는 폭을 먹어 직거래 묶음은 오른쪽 끝에 붙고,
+       글씨는 전부 각 칸의 왼쪽에서 시작합니다. */
     .r.sell5 {
-      grid-template-columns: 96px 150px 200px 150px 200px;
-      justify-content: start;
+      grid-template-columns: 96px 150px minmax(200px, 1fr) 150px 200px;
     }
 
     #sellOut .section { margin-top: 8px; }
@@ -281,8 +282,7 @@
 
     /* 택배 묶음 / 직거래 묶음 머리띠 — 표 위에 색 괘선으로 영역을 나눕니다 */
     .r.sellgrp {
-      grid-template-columns: 96px 364px 364px;
-      justify-content: start;
+      grid-template-columns: 96px minmax(364px, 1fr) 364px;
       border-bottom: none;
       padding-bottom: 0;
     }
