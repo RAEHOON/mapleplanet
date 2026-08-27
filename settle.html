@@ -266,7 +266,7 @@
     /* 아이템 줄 — 카드 안에 이름·판매가만 컴팩트하게 */
     .irow {
       display: grid;
-      grid-template-columns: 1fr 104px 44px 44px;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) 44px 44px;
       gap: 6px;
       align-items: center;
       margin-top: 9px;
@@ -464,7 +464,7 @@
         <div class="field">
           <label for="unit">정산금 절사 단위</label>
           <input type="text" id="unit" inputmode="numeric">
-          <span class="unit">메소</span>
+          <span class="unit">만메소</span>
         </div>
         <p class="note" id="perNote"></p>
       </div>
@@ -485,7 +485,7 @@
         <div class="field">
           <label for="courBase">택배비 (1건당)</label>
           <input type="text" id="courBase" inputmode="numeric">
-          <span class="unit">메소</span>
+          <span class="unit">만메소</span>
         </div>
         <div class="field">
           <label for="tradeFee">직거래 교환 수수료</label>
@@ -496,7 +496,7 @@
 
       <div class="card" style="--accent: var(--gold);">
         <h2>판매 아이템</h2>
-        <p class="fee">경매장에 판 가격 그대로 · 가위로 짤라서 판 템은 ✂ 을 눌러 표시</p>
+        <p class="fee">판매가는 만 단위로 (33222 = 3억 3,222만) · 가위로 짤라서 판 템은 ✂</p>
         <div id="items"></div>
         <div class="row-tools">
           <button class="btn primary" id="add">＋ 줄 추가</button>
@@ -505,7 +505,7 @@
         <div class="field">
           <label for="scPrice">가위값 (1개당)</label>
           <input type="text" id="scPrice" inputmode="numeric">
-          <span class="unit">메소</span>
+          <span class="unit">만메소</span>
         </div>
         <p class="note" id="netNote"></p>
       </div>
@@ -535,15 +535,18 @@
   (function () {
     'use strict';
 
-    const STORE_KEY = 'settle-calc-v1';
+    // v2: 메소 입력을 전부 만 단위로 바꿈 (판매가·가위값·택배비·절사 단위)
+    const STORE_KEY = 'settle-calc-v2';
+
+    const MAN = 10000;   // 만 단위 입력 → 메소 환산 배수
 
     // 인원은 사냥마다 바뀌므로 비워 둡니다. 수수료·택배비는 게임 규칙이라 채워 둡니다.
     const DEFAULTS = {
       people:   '',
-      unit:     '10000',
+      unit:     '1',      // 1만메소
       aucFee:   '10',
       courFee:  '8',
-      courBase: '10000',
+      courBase: '1',      // 1만메소
       tradeFee: '6',
       scPrice:  '',
       items:    []
@@ -605,7 +608,7 @@
       const price = document.createElement('input');
       price.type = 'text';
       price.dataset.key = 'price';
-      price.placeholder = '판매가';
+      price.placeholder = '판매가 (만)';
       price.inputMode = 'decimal';
       price.value = d.price !== undefined ? d.price : '';
       price.addEventListener('input', onAny);
@@ -647,7 +650,8 @@
           o[inp.dataset.key] = inp.value;
         });
 
-        const price = Number((o.price || '0').replace(/[,\s]/g, '')) || 0;
+        // 판매가는 만 단위로 입력받아 메소로 환산합니다.
+        const price = Math.round((Number((o.price || '0').replace(/[,\s]/g, '')) || 0) * MAN);
         if (price > 0) {
           const net = price - Math.floor(price * aucFee);
           out.push({
@@ -696,12 +700,12 @@
       const r = {};
       r.N        = Math.max(1, Math.round(v.people));
       r.R        = r.N - 1;                                  // 나눠 받을 인원
-      r.unit     = Math.max(1, Math.round(v.unit) || 1);
+      r.unit     = Math.max(1, Math.round(v.unit * MAN) || 1);   // 만 단위 입력
       r.courFee  = Math.min(0.5, Math.max(0, v.courFee / 100));
       r.tradeFee = Math.min(0.5, Math.max(0, v.tradeFee / 100));
       r.tradePct = v.tradeFee;
       r.courPct  = v.courFee;
-      r.base     = Math.max(0, Math.round(v.courBase));
+      r.base     = Math.max(0, Math.round(v.courBase * MAN));    // 만 단위 입력
       r.items    = items;
 
       r.gross  = items.reduce(function (s, it) { return s + it.price; }, 0);
@@ -711,7 +715,7 @@
       // 가위값 — ✂ 표시한 아이템 개수 × 1개당 가위값.
       // 분배자가 사서 올린 것이므로 나눌 금액에서 빼고 도로 가져갑니다.
       r.cutCount = items.filter(function (it) { return it.cut; }).length;
-      r.scPrice  = Math.max(0, Math.round(v.scPrice));
+      r.scPrice  = Math.max(0, Math.round(v.scPrice * MAN));     // 만 단위 입력
       r.scissors = r.cutCount * r.scPrice;
       r.pot      = r.netSum - r.scissors;      // 실제로 나눌 금액
 
