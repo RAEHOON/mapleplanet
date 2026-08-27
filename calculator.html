@@ -6,7 +6,7 @@
   <title>메소 환율 계산기</title>
   <meta name="description" content="택배·자유시장·경매장 시세를 비교해 메소를 가장 싸게 구하는 방법을 찾습니다. 캐시템은 현금 직구와 경매장 구매 중 어느 쪽이 싼지도 알려줍니다.">
   <meta property="og:title" content="메소 환율 계산기">
-  <meta property="og:description" content="업자 시세를 비교해 메소를 가장 싸게 구하는 방법을 찾습니다.">
+  <meta property="og:description" content="판매자 시세를 비교해 메소를 가장 싸게 구하는 방법을 찾습니다.">
   <meta name="theme-color" content="#1c1813">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -52,6 +52,7 @@
       color: var(--ink);
       background: var(--paper-deep);
       -webkit-font-smoothing: antialiased;
+      word-break: keep-all;   /* 한국어를 단어 중간에서 끊지 않습니다 */
     }
 
     .wrap { max-width: 1240px; margin: 0 auto; }
@@ -221,6 +222,47 @@
     .btn:focus-visible { outline: 3px solid var(--seal); outline-offset: 2px; }
     .btn.primary { background: var(--gold); color: var(--paper-in); border-color: var(--gold); }
     .btn.primary:hover { background: #392f22; }
+
+    /* ============================================================
+       구매용 / 판매용 전환 탭
+       ============================================================ */
+    .mode-tabs {
+      display: flex;
+      max-width: 420px;
+      margin: 0 auto 24px;
+    }
+
+    .mode-tab {
+      flex: 1;
+      min-height: 48px;
+      font-family: var(--font-ui);
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--ink-mid);
+      background: var(--paper);
+      border: 2px solid var(--line);
+      border-radius: 0;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .mode-tab + .mode-tab { border-left: 0; }
+    .mode-tab:hover { background: var(--paper-band); }
+    .mode-tab.on { background: var(--gold); border-color: var(--gold); color: var(--paper-in); }
+    .mode-tab:focus-visible { outline: 3px solid var(--seal); outline-offset: 2px; }
+
+    /* 판매량 입력 — 억·만 두 칸 */
+    .field2 {
+      display: grid;
+      grid-template-columns: 1fr 80px auto 92px auto;
+      align-items: center;
+      gap: 8px;
+      margin-top: 11px;
+    }
+    .field2 > label { font-size: 13px; color: var(--ink-mid); }
+    .field2 .unit { font-size: 12px; color: var(--ink-soft); white-space: nowrap; }
+
+    /* 판매 결과 표 (판매량 · 수수료 · 햄구이 · 실질) */
+    .r.sell { grid-template-columns: 1fr 170px 190px 150px; }
 
     /* ============================================================
        패널 (아이템 표 · 결과)
@@ -478,8 +520,10 @@
       .r.cube .num { text-align: left; }
       .r.cmp  { grid-template-columns: 1fr 1fr; }
       .r.cmp .num { text-align: left; }
+      .r.sell { grid-template-columns: 1fr 1fr; }
+      .r.sell .num { text-align: left; }
       /* 칸이 접히면 머리글 줄이 오히려 헷갈립니다 */
-      .r.cmp.hdr { display: none; }
+      .r.cmp.hdr, .r.sell.hdr { display: none; }
       .field { grid-template-columns: 1fr 130px 44px; }
       body { padding: 18px 10px 48px; }
       .cards { gap: 12px; }
@@ -499,16 +543,23 @@
 
     <header>
       <h1>메소 환율 계산기</h1>
-      <p class="subtitle">업자 시세를 비교해 메소를 가장 싸게 구하는 방법을 찾습니다</p>
+      <p class="subtitle">시세를 비교해 메소를 가장 싸게 사고, 가장 값지게 파는 길을 찾습니다</p>
     </header>
 
+    <div class="mode-tabs" role="tablist">
+      <button class="mode-tab on" id="tabBuy" type="button">구매용</button>
+      <button class="mode-tab" id="tabSell" type="button">판매용</button>
+    </div>
+
     <!-- ========================================================
-         입력
+         구매용
          ======================================================== -->
+    <div id="buy-view">
+
     <div class="cards">
 
       <div class="card" style="--accent: var(--parcel);">
-        <h2>업자 택배 거래</h2>
+        <h2>판매자 택배 거래</h2>
         <p class="fee">수수료 없음</p>
         <div class="field">
           <label for="parcel1M">100만메소당</label>
@@ -521,7 +572,7 @@
           <span class="unit">메소</span>
         </div>
         <div class="field">
-          <label for="parcelCube">업자 큐브 가격</label>
+          <label for="parcelCube">판매자 큐브 가격</label>
           <input type="text" id="parcelCube" inputmode="decimal">
           <span class="unit">원/개</span>
         </div>
@@ -628,6 +679,56 @@
       <button class="btn" id="reset">입력 지우기</button>
     </div>
 
+    </div><!-- /buy-view -->
+
+    <!-- ========================================================
+         판매용 — 메소를 팔 때. 현금은 '햄구이'로 부릅니다.
+         ======================================================== -->
+    <div id="sell-view" hidden>
+
+      <div class="cards">
+
+        <div class="card" style="--accent: var(--parcel);">
+          <h2>판매 시세</h2>
+          <p class="fee">100만메소를 팔면 햄구이를 몇 개 받는지</p>
+          <div class="field">
+            <label for="sell1M">100만메소당</label>
+            <input type="text" id="sell1M" inputmode="decimal">
+            <span class="unit">햄구이</span>
+          </div>
+          <div class="field">
+            <label for="sellRate">환율 1 :</label>
+            <input type="text" id="sellRate" inputmode="decimal">
+            <span class="unit">메소</span>
+          </div>
+        </div>
+
+        <div class="card" style="--accent: var(--market);">
+          <h2>판매량</h2>
+          <p class="fee">비워 두면 아래 표의 기본 경우들만 보여줍니다</p>
+          <div class="field2">
+            <label for="sellEok">팔 메소</label>
+            <input type="text" id="sellEok" inputmode="numeric">
+            <span class="unit">억</span>
+            <input type="text" id="sellMan" inputmode="numeric">
+            <span class="unit">만메소</span>
+          </div>
+          <p class="note" id="sellNote"></p>
+        </div>
+
+      </div>
+
+      <div class="panel">
+        <h2>판매 결과</h2>
+        <div id="sellOut"></div>
+      </div>
+
+      <div class="toolbar">
+        <button class="btn" id="copySell">결과 복사</button>
+      </div>
+
+    </div><!-- /sell-view -->
+
     <footer>
       입력값은 이 브라우저에 저장되어 새로고침해도 유지됩니다.<br>
       이 페이지는 넥슨코리아와 무관한 비공식 팬 페이지입니다.
@@ -642,7 +743,9 @@
        고정 수수료
        ========================================================== */
     const FEE_AUCTION = 0.10;   // 경매장 판매 수수료
-    const FEE_FM      = 0.06;   // 자유시장 직거래 수수료
+    const FEE_FM      = 0.06;   // 자유시장 직거래(교환) 수수료 — 받는 쪽이 떼입니다
+    const FEE_PARCEL  = 0.08;   // 택배 수수료 — 보내는(파는) 쪽 부담
+    const PARCEL_BASE = 10000;  // 택배비 (1건)
 
     const STORE_KEY = 'meso-calc-v1';
 
@@ -662,8 +765,8 @@
 
     // 사용자가 채워야 계산이 되는 칸들
     const REQUIRED = [
-      { id: 'parcel1M',   name: '업자 택배 100만메소당' },
-      { id: 'parcelCube', name: '업자 큐브 가격' },
+      { id: 'parcel1M',   name: '판매자 택배 100만메소당' },
+      { id: 'parcelCube', name: '판매자 큐브 가격' },
       { id: 'fm1M',       name: '자유시장 100만메소당' },
       { id: 'auction',    name: '경매장 큐브 시세' }
     ];
@@ -718,6 +821,10 @@
     const NUM_IDS = ['parcel1M', 'parcelRate', 'parcelCube',
                      'fm1M', 'fmRate', 'auction', 'qty',
                      'cash1', 'cashN', 'cashNQty'];
+
+    // 판매용 입력 — 구매용 검증(NUM_IDS)과 분리해 서로 방해하지 않습니다.
+    const SELL_IDS = ['sell1M', 'sellRate', 'sellEok', 'sellMan'];
+    let mode = 'buy';
 
     let syncing = false;   // 100만메소당 ↔ 환율 상호 갱신 중 재진입 방지
 
@@ -866,7 +973,7 @@
 
       // ---- 메소 환율 순위 (100만메소당 원가가 싼 순) ----
       const routes = [
-        { name: '업자 택배',      rate: r.parcelRate },
+        { name: '판매자 택배',      rate: r.parcelRate },
         { name: '자유시장 직거래', rate: r.fmEff },
         { name: '큐브 되팔기',    rate: r.cubeResale }
       ];
@@ -1036,7 +1143,7 @@
       /* ---- 큐브 원가 ---- */
       s = section('큐브 원가', '환율 1위(' + r.best.name + ') 기준으로 메소 환산');
       [
-        { name: '업자 큐브',     price: won(r.parcelCube),               val: r.cubeParcel },
+        { name: '판매자 큐브',     price: won(r.parcelCube),               val: r.cubeParcel },
         { name: '캐시샵 큐브',   price: fmt(r.cashUnit, 1) + '원',        val: r.cubeCash },
         { name: '경매장 직구매', price: '-',                              val: r.cubeAuction }
       ].forEach(function (c) {
@@ -1049,7 +1156,7 @@
       });
       s.appendChild(row('dim kv', [
         { cls: 'lbl', text: fmt(r.n) + '개 기준' },
-        { text: '업자 ' + won(r.parcelCube * r.n) +
+        { text: '판매자 ' + won(r.parcelCube * r.n) +
                 ' · 캐시샵 ' + won(r.cashUnit * r.n) +
                 ' · 경매장 ' + meso(r.auction * r.n) }
       ]));
@@ -1134,6 +1241,140 @@
     }
 
     /* ==========================================================
+       판매용 — 메소를 팔 때. 현금은 '햄구이'로 부릅니다.
+       ========================================================== */
+    function ham(v) {
+      const s = fmt(Math.round(v)) + '개';
+      return v >= 1e4 ? s + ' (' + loose(v / 1e4) + '만)' : s;
+    }
+
+    function sellAmt(v) {
+      if (v >= 1e8) return loose(v / 1e8) + '억';
+      return loose(v / 1e4) + '만';
+    }
+
+    function renderSell() {
+      const out = $('sellOut');
+      out.innerHTML = '';
+      sectionNo = 0;
+      $('sellNote').textContent = '';
+
+      const price = num($('sell1M'));      // 100만메소당 햄구이
+      const eok   = num($('sellEok'));
+      const man   = num($('sellMan'));
+
+      let bad = false;
+      [['sell1M', price], ['sellEok', eok], ['sellMan', man]].forEach(function (p) {
+        if (isNaN(p[1])) { bad = true; $(p[0]).classList.add('bad'); }
+        else { $(p[0]).classList.remove('bad'); }
+      });
+      if (bad) {
+        const p = document.createElement('p');
+        p.className = 'error';
+        p.textContent = '숫자가 아닌 값이 들어간 칸이 있습니다.';
+        out.appendChild(p);
+        return;
+      }
+
+      if (!(price > 0)) {
+        const box = document.createElement('div');
+        box.className = 'notice';
+        const head = document.createElement('p');
+        head.className = 'notice-head';
+        head.textContent = '시세를 넣으면 바로 계산합니다';
+        box.appendChild(head);
+        const ul = document.createElement('ul');
+        const li = document.createElement('li');
+        li.textContent = '판매 100만메소당 햄구이';
+        ul.appendChild(li);
+        box.appendChild(ul);
+        const tail = document.createElement('p');
+        tail.className = 'notice-tail';
+        tail.textContent = '시세는 매일 바뀌어서 미리 채워 두지 않았습니다. 한 번 넣으면 이 브라우저에 저장됩니다.';
+        box.appendChild(tail);
+        out.appendChild(box);
+        return;
+      }
+
+      const custom = Math.round(eok * 1e8 + man * 1e4);
+      const amounts = [5e7, 1e8, 2e8, 3e8, 5e8, 1e9];
+      if (custom > 0 && amounts.indexOf(custom) === -1) {
+        amounts.push(custom);
+        amounts.sort(function (a, b) { return a - b; });
+      }
+
+      if (custom > 0) {
+        $('sellNote').textContent =
+          '직거래로 팔면 햄구이 ' + fmt(Math.round(price * custom * (1 - FEE_FM) / 1e6)) + '개';
+      }
+
+      /* ---- 택배로 팔 때 ---- */
+      let s = section('택배로 팔 때', '수수료 8% + 택배비 1만은 파는 쪽 부담 · 상대는 보낸 만큼 받습니다');
+      s.appendChild(row('sell dim hdr', [
+        { cls: 'lbl', text: '판매량' },
+        { text: '내가 내는 수수료' },
+        { text: '받는 햄구이' },
+        { text: '실질 100만당' }
+      ]));
+      amounts.forEach(function (x) {
+        const fee = x * FEE_PARCEL + PARCEL_BASE;
+        s.appendChild(row('sell' + (x === custom ? ' best' : ''), [
+          { cls: 'lbl', html: (x === custom ? '<span class="seal">입력</span>' : '') + sellAmt(x) + ' 팔면' },
+          { text: '− ' + mesoShort(fee) },
+          { text: ham(price * x / 1e6) },
+          { text: fmt(price * x / (x + fee), 1) + '개' }
+        ]));
+      });
+      out.appendChild(s);
+
+      /* ---- 직거래로 팔 때 ---- */
+      s = section('직거래로 팔 때', '교환 수수료 6%는 받는 쪽이 떼입니다 · 돈은 상대가 받은 만큼 쳐줍니다');
+      s.appendChild(row('sell dim hdr', [
+        { cls: 'lbl', text: '건네는 양' },
+        { text: '상대가 받는 양' },
+        { text: '받는 햄구이' },
+        { text: '실질 100만당' }
+      ]));
+      amounts.forEach(function (x) {
+        const recv = x * (1 - FEE_FM);
+        s.appendChild(row('sell' + (x === custom ? ' best' : ''), [
+          { cls: 'lbl', html: (x === custom ? '<span class="seal">입력</span>' : '') + sellAmt(x) + ' 건네면' },
+          { text: mesoShort(recv) },
+          { text: ham(price * recv / 1e6) },
+          { text: fmt(price * (1 - FEE_FM), 1) + '개' }
+        ]));
+      });
+      s.appendChild(row('dim kv', [
+        { cls: 'lbl', text: '참고' },
+        { text: '상대에게 정확한 양을 주기로 했다면 그 양 ÷ 0.94 를 건네세요 (1억을 주려면 약 1억 638만)' }
+      ]));
+      out.appendChild(s);
+
+      /* ---- 어느 쪽이 남는가 ---- */
+      s = section('어느 쪽이 남는가', '같은 메소를 쓸 때 손에 쥐는 햄구이');
+      s.appendChild(row('kv best', [
+        { cls: 'lbl', html: '<span class="seal">유리</span>직거래' },
+        { text: '100만당 ' + fmt(price * (1 - FEE_FM), 1) + '개 — 수수료 6%만 떼입니다' }
+      ]));
+      s.appendChild(row('kv', [
+        { cls: 'lbl', text: '택배' },
+        { text: '100만당 최대 ' + fmt(price / (1 + FEE_PARCEL), 1) + '개 — 수수료 8% + 택배비 1만' }
+      ]));
+      out.appendChild(s);
+    }
+
+    /* ==========================================================
+       구매용 / 판매용 전환
+       ========================================================== */
+    function setMode(m) {
+      mode = m === 'sell' ? 'sell' : 'buy';
+      $('buy-view').hidden = mode === 'sell';
+      $('sell-view').hidden = mode !== 'sell';
+      $('tabBuy').classList.toggle('on', mode === 'buy');
+      $('tabSell').classList.toggle('on', mode === 'sell');
+    }
+
+    /* ==========================================================
        입력 동기화 · 저장
        ========================================================== */
     // 100만메소당 ↔ 환율(1원당 메소) 는 서로의 역수 관계입니다.
@@ -1152,6 +1393,7 @@
 
     function onAny() {
       render();
+      renderSell();
       save();
     }
 
@@ -1159,6 +1401,8 @@
       try {
         const data = {};
         NUM_IDS.forEach(function (id) { data[id] = $(id).value; });
+        SELL_IDS.forEach(function (id) { data[id] = $(id).value; });
+        data.mode = mode;
         data.items = Array.prototype.slice.call($('items').querySelectorAll('tr')).map(function (tr) {
           const o = {};
           tr.querySelectorAll('input').forEach(function (inp) { o[inp.dataset.key] = inp.value; });
@@ -1181,10 +1425,14 @@
         NUM_IDS.forEach(function (id) {
           if (typeof data[id] === 'string' && data[id] !== '') $(id).value = data[id];
         });
+        SELL_IDS.forEach(function (id) {
+          if (typeof data[id] === 'string' && data[id] !== '') $(id).value = data[id];
+        });
         if (Array.isArray(data.items)) {
           $('items').innerHTML = '';
           data.items.forEach(addRow);
         }
+        if (data.mode === 'sell') setMode('sell');
       }
       if (!$('items').querySelector('tr')) addRow();
     }
@@ -1199,19 +1447,24 @@
       $('cashN').value      = DEFAULTS.cashN;
       $('cashNQty').value   = DEFAULTS.cashNQty;
 
+      $('sell1M').value  = '';
+      $('sellEok').value = '';
+      $('sellMan').value = '';
+
       // 100만메소당이 비어 있으면 환율 칸도 비웁니다
       syncing = true;
       $('parcelRate').value = '';
       $('fmRate').value     = '';
+      $('sellRate').value   = '';
       syncing = false;
     }
 
     /* ==========================================================
        결과 복사
        ========================================================== */
-    function copyText() {
+    function copyText(outId, btnId) {
       const lines = [];
-      $('out').querySelectorAll('.section').forEach(function (sec) {
+      $(outId).querySelectorAll('.section').forEach(function (sec) {
         lines.push('■ ' + sec.querySelector('h3').textContent);
         sec.querySelectorAll('.r').forEach(function (rw) {
           const cells = Array.prototype.map.call(rw.children, function (c) {
@@ -1224,7 +1477,7 @@
       const text = lines.join('\n');
 
       const done = function () {
-        const btn = $('copy');
+        const btn = $(btnId);
         const old = btn.textContent;
         btn.textContent = '복사했습니다';
         setTimeout(function () { btn.textContent = old; }, 1400);
@@ -1260,7 +1513,8 @@
       addRow();
       onAny();
     });
-    $('copy').addEventListener('click', copyText);
+    $('copy').addEventListener('click', function () { copyText('out', 'copy'); });
+    $('copySell').addEventListener('click', function () { copyText('sellOut', 'copySell'); });
     $('reset').addEventListener('click', function () {
       applyDefaults();
       $('items').innerHTML = '';
@@ -1268,8 +1522,20 @@
       onAny();
     });
 
+    /* 판매용 입력 */
+    $('sell1M').addEventListener('input',   function () { sync('sell1M', 'sellRate'); });
+    $('sellRate').addEventListener('input', function () { sync('sellRate', 'sell1M'); });
+    ['sellEok', 'sellMan'].forEach(function (id) {
+      $(id).addEventListener('input', onAny);
+    });
+
+    /* 구매용 / 판매용 탭 */
+    $('tabBuy').addEventListener('click',  function () { setMode('buy');  save(); });
+    $('tabSell').addEventListener('click', function () { setMode('sell'); save(); });
+
     load();
     render();
+    renderSell();
   })();
   </script>
 
