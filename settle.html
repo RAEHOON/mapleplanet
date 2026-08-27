@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>정산하기</title>
+  <meta name="description" content="사냥 아이템 판매금을 경매장 수수료·택배비까지 빼고 전원 똑같이 나눕니다. 분배자가 부담하는 택배 수수료까지 계산합니다.">
+  <meta property="og:title" content="정산하기">
+  <meta property="og:description" content="경매장 수수료와 택배비까지 빼고 전원 똑같이 나눕니다.">
+  <meta name="theme-color" content="#1c1813">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700;800&family=Bitter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ============================================================
+       디자인 토큰 — 계산기·타이머와 같은 값을 씁니다.
+       ============================================================ */
+    :root {
+      --paper-deep: #1c1813;   /* 지면 바탕 */
+      --paper:      #262019;   /* 카드·패널 */
+      --paper-in:   #100d09;   /* 입력칸 */
+      --paper-band: #332c22;   /* 강조 행 */
+      --paper-warm: #2f2820;   /* 보조 상자 */
+
+      --ink:        #f6edd8;
+      --ink-mid:    #c3b492;
+      --ink-soft:   #9b8a6a;
+      --ink-faint:  #6f6249;
+
+      --line:       #6a5c46;   /* 테두리 */
+      --rule:       #443a2c;   /* 가는 괘선 */
+      --gold:       #dcbb4c;   /* 금박 — 굵은 괘선과 주 버튼 */
+
+      --seal:       #cc5f42;   /* 인장 주홍 */
+      --seal-bg:    #3a201a;
+
+      /* 이 페이지의 낯색 — 청자 */
+      --celadon:    #8fc0a0;
+      --market:     #d1a06a;
+
+      --font-ui:    'Nanum Myeongjo', 'Batang', serif;
+      --font-num:   'Bitter', 'Nanum Myeongjo', Georgia, serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 22px 16px 60px;
+      font-family: var(--font-ui);
+      color: var(--ink);
+      background: var(--paper-deep);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .wrap { max-width: 1080px; margin: 0 auto; }
+
+    /* 숫자는 고정폭이라 자릿수가 흔들리지 않습니다. */
+    .num, input[type="text"], .n {
+      font-family: var(--font-num);
+      font-variant-numeric: tabular-nums lining-nums;
+      font-feature-settings: "tnum" 1;
+    }
+
+    /* ============================================================
+       머리
+       ============================================================ */
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .home {
+      display: inline-flex;
+      align-items: center;
+      min-height: 44px;
+      padding: 0 16px;
+      border: 2px solid var(--line);
+      background: var(--paper);
+      color: var(--ink);
+      text-decoration: none;
+      font-size: 15px;
+      font-weight: 700;
+    }
+    .home:hover { background: var(--line); color: var(--ink); }
+    .home:focus-visible { outline: 3px solid var(--seal); outline-offset: 2px; }
+
+    .eyebrow {
+      font-size: 13px;
+      color: var(--ink-soft);
+      letter-spacing: .18em;
+    }
+
+    header {
+      text-align: center;
+      border-top: 4px solid var(--gold);
+      border-bottom: 4px solid var(--gold);
+      margin-bottom: 30px;
+    }
+
+    h1 {
+      margin: 0;
+      padding: 22px 8px 8px;
+      border-bottom: 1px solid var(--line);
+      font-size: clamp(1.7rem, 5.5vw, 2.7rem);
+      font-weight: 800;
+      letter-spacing: .12em;
+      text-wrap: balance;
+    }
+
+    .subtitle {
+      margin: 0;
+      padding: 9px 8px 18px;
+      color: var(--ink-mid);
+      font-size: 15px;
+      letter-spacing: .02em;
+    }
+
+    /* ============================================================
+       입력 카드
+       ============================================================ */
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(272px, 1fr));
+      gap: 16px;
+      margin-bottom: 22px;
+    }
+
+    .card {
+      --accent: var(--ink);
+      background: var(--paper);
+      border: 2px solid var(--line);
+      border-top: 9px solid var(--accent);
+      padding: 15px 15px 17px;
+    }
+
+    .card h2 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: .04em;
+      color: var(--accent);
+    }
+
+    .card .fee {
+      margin: 5px 0 0;
+      padding-bottom: 9px;
+      border-bottom: 2px solid var(--line);
+      font-size: 12px;
+      color: var(--ink-soft);
+    }
+
+    /* 라벨 / 입력 / 단위 */
+    .field {
+      display: grid;
+      grid-template-columns: 1fr 116px 46px;
+      align-items: center;
+      gap: 9px;
+      margin-top: 11px;
+    }
+    .field > label { font-size: 13px; color: var(--ink-mid); }
+    .field > .unit { font-size: 12px; color: var(--ink-soft); }
+
+    input[type="text"] {
+      width: 100%;
+      min-height: 44px;
+      padding: 8px 11px;
+      text-align: right;
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--ink);
+      background: var(--paper-in);
+      border: 2px solid var(--line);
+      border-radius: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+    input[type="text"]:focus {
+      outline: none;
+      border-color: var(--seal);
+      box-shadow: inset 0 0 0 2px var(--seal-bg);
+    }
+    input.bad { border-color: var(--seal); background: var(--seal-bg); }
+
+    /* 카드 하단 요약 상자 */
+    .note {
+      margin: 13px 0 0;
+      padding: 9px 11px;
+      border: 2px solid var(--accent);
+      background: var(--paper-warm);
+      font-family: var(--font-num);
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+    .note:empty { display: none; }
+
+    /* ============================================================
+       버튼
+       ============================================================ */
+    .toolbar { display: flex; flex-wrap: wrap; gap: 9px; margin: 0 0 22px; }
+
+    .btn {
+      font-family: var(--font-ui);
+      font-size: 15px;
+      font-weight: 700;
+      min-height: 44px;
+      padding: 9px 19px;
+      color: var(--ink);
+      background: var(--paper);
+      border: 2px solid var(--line);
+      border-radius: 0;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn:hover { background: var(--paper-band); }
+    .btn:active { background: var(--line); color: var(--ink); }
+    .btn:focus-visible { outline: 3px solid var(--seal); outline-offset: 2px; }
+    .btn.primary { background: var(--gold); color: var(--paper-in); border-color: var(--gold); }
+    .btn.primary:hover { background: #392f22; }
+
+    /* ============================================================
+       패널 (아이템 표 · 결과)
+       ============================================================ */
+    .panel {
+      background: var(--paper);
+      border: 2px solid var(--line);
+      padding: 17px 19px 20px;
+      margin-bottom: 22px;
+    }
+
+    .panel > h2 {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      margin: 0;
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: .08em;
+    }
+    .panel > h2::before {
+      content: "";
+      width: 12px;
+      height: 12px;
+      background: var(--gold);
+      flex-shrink: 0;
+    }
+
+    .panel > .hint {
+      margin: 9px 0 0;
+      padding-bottom: 11px;
+      border-bottom: 4px solid var(--gold);
+      font-size: 13px;
+      color: var(--ink-soft);
+      line-height: 1.7;
+    }
+
+    .table-scroll { overflow-x: auto; margin-top: 14px; }
+
+    table { border-collapse: collapse; width: 100%; min-width: 560px; }
+
+    th {
+      font-weight: 400;
+      font-size: 13px;
+      color: var(--ink-mid);
+      text-align: right;
+      padding: 0 8px 8px;
+      border-bottom: 2px solid var(--line);
+      white-space: nowrap;
+    }
+    th:first-child { text-align: left; }
+
+    td { padding: 7px 5px; border-bottom: 1px solid var(--rule); }
+    td:first-child { padding-left: 0; }
+    td input[type="text"] { min-width: 128px; font-size: 17px; }
+    td input.name {
+      text-align: left;
+      font-family: var(--font-ui);
+      min-width: 150px;
+    }
+
+    /* 표 안의 계산값 (실수령) */
+    td.calc {
+      text-align: right;
+      font-family: var(--font-num);
+      font-variant-numeric: tabular-nums lining-nums;
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--celadon);
+      white-space: nowrap;
+      padding-right: 8px;
+    }
+    td.calc .sub { color: var(--ink-soft); font-size: 12px; font-weight: 400; }
+
+    .del {
+      min-width: 44px;
+      min-height: 44px;
+      background: none;
+      border: none;
+      color: var(--ink-faint);
+      font-size: 18px;
+      cursor: pointer;
+    }
+    .del:hover { color: var(--seal); background: var(--seal-bg); }
+    .del:focus-visible { outline: 3px solid var(--seal); outline-offset: -2px; }
+
+    /* ============================================================
+       결과
+       ============================================================ */
+    #out .section { margin-top: 26px; }
+    #out .section:first-child { margin-top: 18px; }
+
+    #out h3 {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin: 0 0 2px;
+      padding-bottom: 7px;
+      border-bottom: 2px solid var(--line);
+      font-size: 17px;
+      font-weight: 800;
+      letter-spacing: .06em;
+    }
+    #out h3 .no { color: var(--seal); letter-spacing: .1em; }
+    #out h3 .sub {
+      font-weight: 400;
+      font-size: 12px;
+      color: var(--ink-soft);
+      letter-spacing: 0;
+    }
+
+    .r {
+      display: grid;
+      gap: 3px 14px;
+      padding: 11px 10px;
+      border-bottom: 1px solid var(--rule);
+      font-family: var(--font-num);
+      font-variant-numeric: tabular-nums lining-nums;
+      font-size: 17px;
+      align-items: baseline;
+    }
+    .r:last-child { border-bottom: none; }
+    .r .lbl { font-family: var(--font-ui); font-size: 16px; color: var(--ink); }
+    .r .num { text-align: right; }
+    .r .sub { color: var(--ink-soft); font-size: 13px; font-weight: 400; }
+
+    /* 최선 — 지면을 한 톤 눌러 깔고 굵게 */
+    .r.best { background: var(--paper-band); font-size: 19px; font-weight: 700; }
+    .r.best .lbl { font-size: 18px; font-weight: 800; }
+
+    .r.bad { background: var(--seal-bg); font-weight: 700; }
+    .r.bad .lbl { font-weight: 800; }
+
+    .r.dim { font-size: 14px; color: var(--ink-mid); }
+    .r.dim .lbl { font-size: 13px; color: var(--ink-soft); }
+
+    .r.kv { grid-template-columns: 158px 1fr; }
+
+    /* 인장 — 색을 못 보더라도 구분되도록 글자를 함께 찍습니다. */
+    .seal {
+      display: inline-block;
+      margin-right: 8px;
+      padding: 3px 8px;
+      background: var(--seal);
+      color: var(--paper-in);
+      font-family: var(--font-ui);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: .02em;
+      white-space: nowrap;
+    }
+
+    /* 아직 안 채운 칸 안내 — 오류가 아니므로 붉은색을 쓰지 않습니다 */
+    .notice {
+      padding: 16px 16px 14px;
+      border: 2px solid var(--line);
+      background: var(--paper-warm);
+      font-family: var(--font-ui);
+      color: var(--ink-mid);
+    }
+    .notice-head {
+      margin: 0 0 10px;
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--ink);
+      letter-spacing: .02em;
+    }
+    .notice ul { margin: 0; padding-left: 20px; }
+    .notice li { font-size: 15px; color: var(--ink); line-height: 1.9; }
+    .notice-tail {
+      margin: 12px 0 0;
+      padding-top: 11px;
+      border-top: 1px solid var(--rule);
+      font-size: 13px;
+      line-height: 1.75;
+      color: var(--ink-soft);
+    }
+
+    .error {
+      padding: 14px 10px;
+      border: 2px solid var(--seal);
+      background: var(--seal-bg);
+      color: var(--seal);
+      font-family: var(--font-ui);
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    footer {
+      margin-top: 40px;
+      padding-top: 20px;
+      border-top: 1px solid var(--rule);
+      text-align: center;
+      color: var(--ink-soft);
+      font-size: 13px;
+      line-height: 1.9;
+    }
+
+    /* ============================================================
+       좁은 화면 — 표를 아이템 한 개당 카드 하나로 접습니다.
+       ============================================================ */
+    @media (max-width: 640px) {
+      .table-scroll { overflow-x: visible; }
+      table { min-width: 0; }
+      thead { display: none; }
+      tbody, tbody tr, tbody td { display: block; width: 100%; }
+
+      tbody tr {
+        border: 2px solid var(--line);
+        padding: 10px 12px 12px;
+        margin-bottom: 14px;
+      }
+
+      tbody td {
+        border: none;
+        padding: 6px 0;
+        display: grid;
+        grid-template-columns: 104px 1fr;
+        align-items: center;
+        gap: 10px;
+      }
+      tbody td::before {
+        content: attr(data-label);
+        font-size: 13px;
+        color: var(--ink-mid);
+      }
+      tbody td:first-child { padding-left: 0; }
+      tbody td input[type="text"] { min-width: 0; }
+      td.calc { text-align: left; padding-right: 0; }
+
+      tbody td.del-cell {
+        display: flex;
+        justify-content: flex-end;
+        padding-top: 10px;
+        margin-top: 4px;
+        border-top: 1px solid var(--rule);
+      }
+      tbody td.del-cell::before { content: none; }
+
+      .r.kv { grid-template-columns: 1fr; }
+      .r.kv .num { text-align: left; }
+      .field { grid-template-columns: 1fr 130px 44px; }
+      body { padding: 18px 10px 48px; }
+      .cards { gap: 12px; }
+      .panel { padding: 14px 12px 16px; }
+      .r { padding: 10px 6px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="wrap">
+    <div class="topbar">
+      <a class="home" href="index.html">← 뒤로가기</a>
+      <span class="eyebrow">메이플 도구모음</span>
+    </div>
+
+    <header>
+      <h1>정산하기</h1>
+      <p class="subtitle">사냥 아이템 판매금을 수수료까지 빼고 전원 똑같이 나눕니다</p>
+    </header>
+
+    <!-- ========================================================
+         입력
+         ======================================================== -->
+    <div class="cards">
+
+      <div class="card" style="--accent: var(--celadon);">
+        <h2>분배</h2>
+        <p class="fee">분배자 본인을 포함한 전체 인원입니다</p>
+        <div class="field">
+          <label for="people">분배 인원</label>
+          <input type="text" id="people" inputmode="numeric">
+          <span class="unit">명</span>
+        </div>
+        <div class="field">
+          <label for="unit">정산금 절사 단위</label>
+          <input type="text" id="unit" inputmode="numeric">
+          <span class="unit">메소</span>
+        </div>
+        <p class="note" id="perNote"></p>
+      </div>
+
+      <div class="card" style="--accent: var(--market);">
+        <h2>수수료</h2>
+        <p class="fee">택배비와 택배 수수료는 분배자가 부담합니다</p>
+        <div class="field">
+          <label for="aucFee">경매장 판매 수수료</label>
+          <input type="text" id="aucFee" inputmode="decimal">
+          <span class="unit">%</span>
+        </div>
+        <div class="field">
+          <label for="courFee">택배 수수료</label>
+          <input type="text" id="courFee" inputmode="decimal">
+          <span class="unit">%</span>
+        </div>
+        <div class="field">
+          <label for="courBase">택배비 (1건당)</label>
+          <input type="text" id="courBase" inputmode="numeric">
+          <span class="unit">메소</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ========================================================
+         아이템
+         ======================================================== -->
+    <div class="panel">
+      <h2>판매 아이템</h2>
+      <p class="hint">
+        사냥에서 먹어 경매장에 판 아이템의 판매가를 넣습니다.
+        경매장 수수료를 뺀 실수령가가 오른쪽에 바로 보입니다. 빈 줄은 건너뜁니다.
+      </p>
+
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>이름</th>
+              <th>판매가 (메소)</th>
+              <th>실수령</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="items"></tbody>
+        </table>
+      </div>
+
+      <div class="toolbar" style="margin: 14px 0 0;">
+        <button class="btn primary" id="add">＋ 줄 추가</button>
+        <button class="btn" id="clear">전체 삭제</button>
+      </div>
+    </div>
+
+    <!-- ========================================================
+         결과
+         ======================================================== -->
+    <div class="panel">
+      <h2>결과</h2>
+      <div id="out"></div>
+    </div>
+
+    <div class="toolbar">
+      <button class="btn" id="copy">결과 복사</button>
+      <button class="btn" id="reset">입력 지우기</button>
+    </div>
+
+    <footer>
+      입력값은 이 브라우저에 저장되어 새로고침해도 유지됩니다.<br>
+      이 페이지는 넥슨코리아와 무관한 비공식 팬 페이지입니다.
+    </footer>
+  </div>
+
+  <script>
+  (function () {
+    'use strict';
+
+    const STORE_KEY = 'settle-calc-v1';
+
+    // 인원은 사냥마다 바뀌므로 비워 둡니다. 수수료·택배비는 게임 규칙이라 채워 둡니다.
+    const DEFAULTS = {
+      people:   '',
+      unit:     '10000',
+      aucFee:   '10',
+      courFee:  '8',
+      courBase: '10000',
+      items:    []
+    };
+
+    /* ==========================================================
+       숫자 도우미
+       ========================================================== */
+    const $ = function (id) { return document.getElementById(id); };
+
+    function fmt(v, digits) {
+      return v.toLocaleString('ko-KR', {
+        minimumFractionDigits: digits || 0,
+        maximumFractionDigits: digits || 0
+      });
+    }
+
+    function loose(v) {
+      return v.toLocaleString('ko-KR', { maximumFractionDigits: 2 });
+    }
+
+    // 큰 메소는 억/만 단위를 괄호로 덧붙입니다.
+    function meso(v) {
+      const s = fmt(Math.round(v)) + '메소';
+      const a = Math.abs(v);
+      if (a >= 1e8) return s + ' (' + loose(v / 1e8) + '억)';
+      if (a >= 1e4) return s + ' (' + loose(v / 1e4) + '만)';
+      return s;
+    }
+
+    // 입력칸을 숫자로 읽습니다. 쉼표와 공백은 무시합니다.
+    function num(el) {
+      const raw = el.value.replace(/[,\s]/g, '');
+      if (raw === '') return 0;
+      const v = Number(raw);
+      return isFinite(v) ? v : NaN;
+    }
+
+    const NUM_IDS = ['people', 'unit', 'aucFee', 'courFee', 'courBase'];
+
+    /* ==========================================================
+       아이템 표
+       ========================================================== */
+    const COLS = [
+      { key: 'name',  cls: 'name', ph: '아이템 이름', label: '이름' },
+      { key: 'price', cls: '',     ph: '0',          label: '판매가 (메소)' }
+    ];
+
+    function addRow(data) {
+      const d = data || {};
+      const tr = document.createElement('tr');
+
+      COLS.forEach(function (c) {
+        const td = document.createElement('td');
+        td.dataset.label = c.label;
+        const inp = document.createElement('input');
+        inp.type = 'text';
+        inp.className = c.cls;
+        inp.dataset.key = c.key;
+        inp.placeholder = c.ph;
+        if (c.key !== 'name') inp.inputMode = 'decimal';
+        inp.value = d[c.key] !== undefined ? d[c.key] : '';
+        inp.addEventListener('input', onAny);
+        td.appendChild(inp);
+        tr.appendChild(td);
+      });
+
+      // 실수령 표시칸 (계산값)
+      const calc = document.createElement('td');
+      calc.className = 'calc';
+      calc.dataset.label = '실수령';
+      tr.appendChild(calc);
+
+      const td = document.createElement('td');
+      td.className = 'del-cell';
+      const del = document.createElement('button');
+      del.className = 'del';
+      del.type = 'button';
+      del.title = '이 줄 삭제';
+      del.textContent = '✕';
+      del.addEventListener('click', function () { tr.remove(); onAny(); });
+      td.appendChild(del);
+      tr.appendChild(td);
+
+      $('items').appendChild(tr);
+    }
+
+    // 표를 읽어 아이템 목록으로 바꿉니다. 아무것도 안 넣은 줄은 건너뜁니다.
+    function readItems(aucFee) {
+      const rows = Array.prototype.slice.call($('items').querySelectorAll('tr'));
+      const out = [];
+
+      rows.forEach(function (tr) {
+        const o = {};
+        tr.querySelectorAll('input').forEach(function (inp) {
+          o[inp.dataset.key] = inp.value;
+        });
+
+        const price = Number((o.price || '0').replace(/[,\s]/g, '')) || 0;
+        const calc = tr.querySelector('td.calc');
+
+        if (price > 0) {
+          const net = price - Math.floor(price * aucFee);
+          calc.innerHTML = fmt(net) +
+            (net >= 1e4 ? ' <span class="sub">(' + loose(net / (net >= 1e8 ? 1e8 : 1e4)) + (net >= 1e8 ? '억' : '만') + ')</span>' : '');
+          out.push({ name: (o.name || '').trim() || '(이름 없음)', price: price, net: net });
+        } else {
+          calc.textContent = '';
+        }
+      });
+
+      return out;
+    }
+
+    /* ==========================================================
+       계산
+       모두가 x 씩 받으려면:
+         실수령 S = x + (N−1) × (x×(1+택배수수료) + 택배비)
+         x = (S − 택배비×(N−1)) ÷ (1 + (1+택배수수료)×(N−1))
+       x 는 절사 단위로 내리고, 남는 끝수는 분배자가 보관합니다.
+       택배 수수료는 올림으로 잡아 분배자가 모자라는 일이 없게 합니다.
+       ========================================================== */
+    function compute() {
+      const v = {};
+      let bad = false;
+
+      NUM_IDS.forEach(function (id) {
+        const n = num($(id));
+        if (isNaN(n)) { bad = true; $(id).classList.add('bad'); }
+        else { $(id).classList.remove('bad'); }
+        v[id] = n;
+      });
+
+      if (bad) return { error: '숫자가 아닌 값이 들어간 칸이 있습니다.' };
+
+      const aucFee = Math.min(0.5, Math.max(0, v.aucFee / 100));
+      const items = readItems(aucFee);
+
+      // 아직 안 채운 칸은 잘못된 게 아닙니다 — 무엇이 남았는지만 알려 줍니다.
+      const need = [];
+      if (!(v.people >= 1)) need.push('분배 인원');
+      if (!items.length) need.push('아이템 판매가');
+      if (need.length) return { need: need };
+
+      const r = {};
+      r.N       = Math.max(1, Math.round(v.people));
+      r.R       = r.N - 1;                                  // 택배를 받을 인원
+      r.unit    = Math.max(1, Math.round(v.unit) || 1);
+      r.courFee = Math.min(0.5, Math.max(0, v.courFee / 100));
+      r.base    = Math.max(0, Math.round(v.courBase));
+      r.items   = items;
+
+      r.gross  = items.reduce(function (s, it) { return s + it.price; }, 0);
+      r.netSum = items.reduce(function (s, it) { return s + it.net; }, 0);
+      r.aucCut = r.gross - r.netSum;
+
+      if (r.R === 0) {
+        r.x = r.netSum;
+        r.fee = 0; r.perCost = 0; r.leftover = 0;
+        return r;
+      }
+
+      const raw = (r.netSum - r.base * r.R) / (1 + (1 + r.courFee) * r.R);
+      let x = Math.floor(raw / r.unit) * r.unit;
+
+      // 수수료 올림 때문에 총액을 넘길 수 있으니 안전하게 한 단위씩 내립니다.
+      let fee = 0, perCost = 0, leftover = -1;
+      while (x > 0) {
+        fee = Math.ceil(x * r.courFee);
+        perCost = x + fee + r.base;
+        leftover = r.netSum - x - perCost * r.R;
+        if (leftover >= 0) break;
+        x -= r.unit;
+      }
+
+      if (x <= 0) {
+        return { error: '실수령 합계가 택배비를 감당하지 못합니다. 인원을 줄이거나 절사 단위를 낮춰 보세요.' };
+      }
+
+      r.x = x; r.fee = fee; r.perCost = perCost; r.leftover = leftover;
+      return r;
+    }
+
+    /* ==========================================================
+       결과 그리기
+       ========================================================== */
+    function row(cls, parts) {
+      const div = document.createElement('div');
+      div.className = 'r ' + cls;
+      parts.forEach(function (p) {
+        const span = document.createElement('span');
+        span.className = p.cls || 'num';
+        span.innerHTML = p.html !== undefined ? p.html : String(p.text);
+        div.appendChild(span);
+      });
+      return div;
+    }
+
+    // 결과 절은 一, 二, 三… 으로 번호를 매깁니다.
+    const NUMERALS = ['一', '二', '三', '四', '五', '六', '七'];
+    let sectionNo = 0;
+
+    function section(title, sub) {
+      const s = document.createElement('div');
+      s.className = 'section';
+      const h = document.createElement('h3');
+
+      const no = document.createElement('span');
+      no.className = 'no';
+      no.textContent = NUMERALS[sectionNo] || String(sectionNo + 1);
+      sectionNo++;
+      h.appendChild(no);
+
+      const ttl = document.createElement('span');
+      ttl.textContent = title;
+      h.appendChild(ttl);
+
+      if (sub) {
+        const em = document.createElement('span');
+        em.className = 'sub';
+        em.textContent = sub;
+        h.appendChild(em);
+      }
+      s.appendChild(h);
+      return s;
+    }
+
+    function render() {
+      const out = $('out');
+      out.innerHTML = '';
+      sectionNo = 0;
+
+      const r = compute();
+
+      $('perNote').textContent = '';
+
+      if (r.error) {
+        const p = document.createElement('p');
+        p.className = 'error';
+        p.textContent = r.error;
+        out.appendChild(p);
+        return;
+      }
+
+      if (r.need) {
+        const box = document.createElement('div');
+        box.className = 'notice';
+        const head = document.createElement('p');
+        head.className = 'notice-head';
+        head.textContent = '넣으면 바로 계산합니다';
+        box.appendChild(head);
+
+        const ul = document.createElement('ul');
+        r.need.forEach(function (name) {
+          const li = document.createElement('li');
+          li.textContent = name;
+          ul.appendChild(li);
+        });
+        box.appendChild(ul);
+
+        const tail = document.createElement('p');
+        tail.className = 'notice-tail';
+        tail.textContent = '인원은 사냥마다 바뀌어서 미리 채워 두지 않았습니다. 한 번 넣으면 이 브라우저에 저장됩니다.';
+        box.appendChild(tail);
+
+        out.appendChild(box);
+        return;
+      }
+
+      $('perNote').textContent = '1인당 ' + fmt(r.x) + '메소';
+
+      /* ---- 판매 정산 ---- */
+      let s = section('판매 정산', r.items.length + '종 · 경매장 수수료를 뺀 실수령');
+      s.appendChild(row('kv', [
+        { cls: 'lbl', text: '총 판매금' },
+        { text: meso(r.gross) }
+      ]));
+      s.appendChild(row('kv', [
+        { cls: 'lbl', text: '경매장 수수료' },
+        { text: '− ' + meso(r.aucCut) }
+      ]));
+      s.appendChild(row('kv best', [
+        { cls: 'lbl', text: '실수령 합계' },
+        { text: meso(r.netSum) }
+      ]));
+      r.items.forEach(function (it) {
+        s.appendChild(row('dim kv', [
+          { cls: 'lbl', text: it.name },
+          { text: fmt(it.price) + '  →  실수령 ' + fmt(it.net) }
+        ]));
+      });
+      out.appendChild(s);
+
+      /* ---- 분배 ---- */
+      s = section('분배', r.N + '명 전원이 똑같이 받습니다');
+      s.appendChild(row('kv best', [
+        { cls: 'lbl', html: '<span class="seal">전원 동일</span>1인당' },
+        { text: meso(r.x) }
+      ]));
+      if (r.R > 0) {
+        s.appendChild(row('kv', [
+          { cls: 'lbl', text: '파티원 ' + r.R + '명' },
+          { text: '각자 택배로 ' + fmt(r.x) + '메소 받음' }
+        ]));
+        s.appendChild(row('kv', [
+          { cls: 'lbl', text: '분배자' },
+          { text: fmt(r.x) + '메소' + (r.leftover > 0 ? ' + 끝수 ' + fmt(r.leftover) + '메소 보관' : ' 보관') }
+        ]));
+      } else {
+        s.appendChild(row('dim kv', [
+          { cls: 'lbl', text: '혼자 사냥' },
+          { text: '전액 본인 몫입니다' }
+        ]));
+      }
+      out.appendChild(s);
+
+      /* ---- 분배자 택배 부담 ---- */
+      if (r.R > 0) {
+        s = section('분배자 택배 부담', '택배 ' + r.R + '건 · 수수료는 올림으로 넉넉하게');
+        s.appendChild(row('kv', [
+          { cls: 'lbl', text: '1건당 보낼 금액' },
+          { text: fmt(r.x) + '메소' }
+        ]));
+        s.appendChild(row('kv', [
+          { cls: 'lbl', text: '1건당 택배 수수료' },
+          { text: '+ ' + fmt(r.fee) + '메소' }
+        ]));
+        s.appendChild(row('kv', [
+          { cls: 'lbl', text: '1건당 택배비' },
+          { text: '+ ' + fmt(r.base) + '메소' }
+        ]));
+        s.appendChild(row('kv best', [
+          { cls: 'lbl', text: '1건당 지출' },
+          { text: meso(r.perCost) }
+        ]));
+        s.appendChild(row('kv', [
+          { cls: 'lbl', text: r.R + '건 총 지출' },
+          { text: meso(r.perCost * r.R) }
+        ]));
+        s.appendChild(row('dim kv', [
+          { cls: 'lbl', text: '검산' },
+          { text: '분배자 몫 ' + fmt(r.x) + ' + 총 지출 ' + fmt(r.perCost * r.R) +
+                  (r.leftover > 0 ? ' + 끝수 ' + fmt(r.leftover) : '') +
+                  ' = ' + fmt(r.x + r.perCost * r.R + r.leftover) + '  (실수령 합계와 일치)' }
+        ]));
+        out.appendChild(s);
+      }
+    }
+
+    /* ==========================================================
+       저장 · 복원
+       ========================================================== */
+    function onAny() {
+      render();
+      save();
+    }
+
+    function save() {
+      try {
+        const data = {};
+        NUM_IDS.forEach(function (id) { data[id] = $(id).value; });
+        data.items = Array.prototype.slice.call($('items').querySelectorAll('tr')).map(function (tr) {
+          const o = {};
+          tr.querySelectorAll('input').forEach(function (inp) { o[inp.dataset.key] = inp.value; });
+          return o;
+        });
+        localStorage.setItem(STORE_KEY, JSON.stringify(data));
+      } catch (e) { /* 저장 못 해도 계산은 계속됩니다 */ }
+    }
+
+    function load() {
+      let data = null;
+      try {
+        const raw = localStorage.getItem(STORE_KEY);
+        if (raw) data = JSON.parse(raw);
+      } catch (e) { data = null; }
+
+      applyDefaults();
+
+      if (data) {
+        NUM_IDS.forEach(function (id) {
+          if (typeof data[id] === 'string' && data[id] !== '') $(id).value = data[id];
+        });
+        if (Array.isArray(data.items)) {
+          $('items').innerHTML = '';
+          data.items.forEach(addRow);
+        }
+      }
+      if (!$('items').querySelector('tr')) addRow();
+    }
+
+    function applyDefaults() {
+      NUM_IDS.forEach(function (id) { $(id).value = DEFAULTS[id]; });
+    }
+
+    /* ==========================================================
+       결과 복사
+       ========================================================== */
+    function copyText() {
+      const lines = [];
+      $('out').querySelectorAll('.section').forEach(function (sec) {
+        lines.push('■ ' + sec.querySelector('h3').textContent);
+        sec.querySelectorAll('.r').forEach(function (rw) {
+          const cells = Array.prototype.map.call(rw.children, function (c) {
+            return c.textContent.trim();
+          }).filter(function (t) { return t !== ''; });
+          lines.push('  ' + cells.join('   '));
+        });
+        lines.push('');
+      });
+      const text = lines.join('\n');
+
+      const done = function () {
+        const btn = $('copy');
+        const old = btn.textContent;
+        btn.textContent = '복사했습니다';
+        setTimeout(function () { btn.textContent = old; }, 1400);
+      };
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done, function () {});
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); done(); } catch (e) {}
+        ta.remove();
+      }
+    }
+
+    /* ==========================================================
+       초기화
+       ========================================================== */
+    NUM_IDS.forEach(function (id) {
+      $(id).addEventListener('input', onAny);
+    });
+
+    $('add').addEventListener('click', function () { addRow(); onAny(); });
+    $('clear').addEventListener('click', function () {
+      $('items').innerHTML = '';
+      addRow();
+      onAny();
+    });
+    $('copy').addEventListener('click', copyText);
+    $('reset').addEventListener('click', function () {
+      applyDefaults();
+      $('items').innerHTML = '';
+      addRow();
+      onAny();
+    });
+
+    load();
+    render();
+  })();
+  </script>
+
+</body>
+</html>
