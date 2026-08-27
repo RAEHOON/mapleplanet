@@ -176,6 +176,26 @@
       color: var(--accent);
     }
 
+    /* 문의·후원 — 이동하지 않는 안내판이라 눌리는 효과를 뺍니다 */
+    .tile.static { cursor: default; }
+    .tile.static:hover,
+    .tile.static:active {
+      background: var(--paper);
+      transform: none;
+      box-shadow: 5px 5px 0 rgba(0, 0, 0, .45);
+    }
+
+    .tile.static .desc b { color: var(--ink); font-weight: 700; }
+
+    .tile.static .mail {
+      color: var(--accent);
+      font-weight: 700;
+      text-decoration: none;
+      border-bottom: 1px solid var(--accent);
+    }
+    .tile.static .mail:hover { background: var(--paper-band); }
+    .tile.static .mail:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
     /* ============================================================
        하단
        ============================================================ */
@@ -285,6 +305,23 @@
           </svg>
         </span>
       </a>
+
+      <div class="tile static" style="--accent: var(--gold);">
+        <!-- 편지 봉투 — 문의와 마음이 오가는 곳 -->
+        <svg class="icon" width="46" height="46" viewBox="0 0 48 48" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+             aria-hidden="true">
+          <path d="M6 13 h36 v24 h-36 Z"></path>
+          <path d="M6 14 L24 27 L42 14"></path>
+        </svg>
+
+        <span class="name">문의 · 후원</span>
+        <p class="desc">
+          문의 <a class="mail" href="mailto:felgoo1234@gmail.com">felgoo1234@gmail.com</a><br>
+          후원 닉네임 <b>택배용쿠팡맨</b><br>
+          사용하고 감동이 있으시다면 택배....ㅎ 사랑합니다
+        </p>
+      </div>
 
     </main>
 
