@@ -303,10 +303,10 @@
     /* 금액 칸 사이의 단위 글자 */
     .u { font-size: 12px; color: var(--ink-soft); white-space: nowrap; }
 
-    /* 가위값 — 억·만·메소 세 칸 */
+    /* 가위값 — 만·메소 두 칸 (억 단위까지 갈 일이 없습니다) */
     .field-3 {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) 52px auto 64px auto 70px;
+      grid-template-columns: minmax(0, 1fr) 72px auto 76px;
       align-items: center;
       gap: 5px;
       margin-top: 6px;
@@ -571,9 +571,7 @@
         <p class="fee">판매가는 억 · 만 · 메소 칸에 나눠서 · 가위로 짤라서 판 템은 ✂</p>
         <div id="items"></div>
         <div class="field-3">
-          <label for="scEok">가위값 (1개당)</label>
-          <input type="text" id="scEok" inputmode="numeric" aria-label="가위값 억 단위">
-          <span class="u">억</span>
+          <label for="scMan">가위값 (1개당)</label>
           <input type="text" id="scMan" inputmode="numeric" aria-label="가위값 만 단위">
           <span class="u">만</span>
           <input type="text" id="scMeso" inputmode="numeric" placeholder="메소" aria-label="가위값 메소 단위">
@@ -620,7 +618,6 @@
       courFee:  '8',
       courBase: '1',      // 1만메소
       tradeFee: '6',
-      scEok:    '',
       scMan:    '',
       scMeso:   '',
       items:    []
@@ -668,7 +665,7 @@
     }
 
     const NUM_IDS = ['people', 'unit', 'aucFee', 'courFee', 'courBase', 'tradeFee',
-                     'scEok', 'scMan', 'scMeso'];
+                     'scMan', 'scMeso'];
 
     // 억/만/메소 세 값(숫자)을 메소로 합칩니다.
     function toMeso(eok, man, meso) {
@@ -831,7 +828,7 @@
       // 가위값 — ✂ 표시한 아이템 개수 × 1개당 가위값.
       // 분배자가 사서 올린 것이므로 나눌 금액에서 빼고 도로 가져갑니다.
       r.cutCount = items.filter(function (it) { return it.cut; }).length;
-      r.scPrice  = Math.max(0, toMeso(v.scEok, v.scMan, v.scMeso));
+      r.scPrice  = Math.max(0, toMeso(0, v.scMan, v.scMeso));
       r.scissors = r.cutCount * r.scPrice;
       r.pot      = r.netSum - r.scissors;      // 실제로 나눌 금액
 
@@ -1147,8 +1144,9 @@
           const old = JSON.parse(localStorage.getItem(OLD_KEY));
           if (old) {
             data = old;
-            const sc = splitMeso((Number(String(old.scPrice || '').replace(/[,\s]/g, '')) || 0) * MAN);
-            data.scEok = String(sc.eok); data.scMan = String(sc.man); data.scMeso = String(sc.meso);
+            const scTotal = Math.round((Number(String(old.scPrice || '').replace(/[,\s]/g, '')) || 0) * MAN);
+            data.scMan = String(Math.floor(scTotal / MAN) || '');
+            data.scMeso = String(scTotal % MAN || '');
             if (Array.isArray(old.items)) {
               data.items = old.items.map(function (o) {
                 const p = splitMeso((Number(String(o.price || '').replace(/[,\s]/g, '')) || 0) * MAN);
