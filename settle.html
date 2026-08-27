@@ -51,6 +51,7 @@
       color: var(--ink);
       background: var(--paper-deep);
       -webkit-font-smoothing: antialiased;
+      word-break: keep-all;   /* 한국어를 단어 중간에서 끊지 않습니다 */
     }
 
     .wrap { max-width: 1080px; margin: 0 auto; }
@@ -145,12 +146,26 @@
     }
 
     .card h2 {
+      display: flex;
+      align-items: center;
+      gap: 8px;
       margin: 0;
       font-size: 18px;
       font-weight: 800;
       letter-spacing: .04em;
       color: var(--accent);
     }
+
+    /* 수수료 카드 — 2×2 미니 격자 (라벨을 입력칸 위에) */
+    .mini-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 7px 10px;
+      margin-top: 9px;
+    }
+    .mini label { display: block; font-size: 12px; color: var(--ink-mid); margin-bottom: 3px; }
+    .mini .mrow { display: flex; align-items: center; gap: 5px; }
+    .mini .unit { font-size: 12px; color: var(--ink-soft); white-space: nowrap; }
 
     .card .fee {
       margin: 5px 0 0;
@@ -168,6 +183,9 @@
       gap: 9px;
       margin-top: 6px;
     }
+
+    /* 분배 카드 — 인원·절사 단위는 두세 자리면 충분해 칸을 좁힙니다 */
+    .card.dist .field { grid-template-columns: 1fr 62px 46px; }
     .field > label { font-size: 13px; color: var(--ink-mid); }
     .field > .unit { font-size: 12px; color: var(--ink-soft); }
 
@@ -264,14 +282,37 @@
       line-height: 1.7;
     }
 
-    /* 아이템 줄 — 카드 안에 이름·판매가만 컴팩트하게 */
+    /* 아이템 줄 — 판매가를 억·만·메소 세 칸으로 나눠 받습니다.
+       좁은 화면에서는 이름이 윗줄, 금액이 아랫줄로 접힙니다. */
     .irow {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) 44px 44px;
-      gap: 6px;
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1.2fr) auto minmax(0, 1.3fr) 44px 44px;
+      gap: 5px;
       align-items: center;
       margin-top: 9px;
     }
+    .irow .iname { grid-column: 1 / -1; }
+
+    @media (min-width: 920px) {
+      .irow {
+        grid-template-columns: minmax(0, 1fr) 52px auto 64px auto 70px 44px 44px;
+      }
+      .irow .iname { grid-column: auto; }
+    }
+
+    /* 금액 칸 사이의 단위 글자 */
+    .u { font-size: 12px; color: var(--ink-soft); white-space: nowrap; }
+
+    /* 가위값 — 억·만·메소 세 칸 */
+    .field-3 {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 52px auto 64px auto 70px;
+      align-items: center;
+      gap: 5px;
+      margin-top: 6px;
+    }
+    .field-3 > label { font-size: 13px; color: var(--ink-mid); }
+    .field-3 input[type="text"] { font-size: 16px; padding-left: 6px; padding-right: 6px; }
 
     /* 가위 표시 — 짤라서 판 아이템 (가위값을 나눌 금액에서 뺍니다) */
     .cut {
@@ -287,15 +328,15 @@
     .cut:hover { border-color: var(--seal); color: var(--seal); }
     .cut.on { background: var(--seal); border-color: var(--seal); color: var(--paper-in); }
     .cut:focus-visible { outline: 3px solid var(--seal); outline-offset: 2px; }
-    .irow input[type="text"] { font-size: 17px; }
+    .irow input[type="text"] { font-size: 16px; padding-left: 6px; padding-right: 6px; }
     .irow input.name {
       text-align: left;
       font-family: var(--font-ui);
       font-size: 15px;
     }
 
-    .row-tools { display: flex; gap: 8px; margin-top: 13px; }
-    .row-tools .btn { flex: 1 1 auto; padding: 9px 8px; font-size: 14px; }
+    .row-tools { display: flex; gap: 8px; margin-top: 10px; }
+    .row-tools .btn { flex: 1 1 auto; padding: 6px 8px; font-size: 14px; }
 
     .del {
       min-width: 44px;
@@ -365,7 +406,7 @@
       align-items: baseline;
     }
     .r:last-child { border-bottom: none; }
-    .r .lbl { font-family: var(--font-ui); font-size: 14px; color: var(--ink); }
+    .r .lbl { font-family: var(--font-ui); font-size: 14px; color: var(--ink); white-space: nowrap; }
     .r .num { text-align: right; }
     .r .sub { color: var(--ink-soft); font-size: 12px; font-weight: 400; }
 
@@ -379,7 +420,8 @@
     .r.dim { font-size: 13px; color: var(--ink-mid); }
     .r.dim .lbl { font-size: 12px; color: var(--ink-soft); }
 
-    .r.kv { grid-template-columns: 128px 1fr; }
+    /* 라벨은 줄바꿈 없이 내용만큼 차지하고, 숫자가 나머지를 씁니다 */
+    .r.kv { grid-template-columns: auto 1fr; }
 
     /* 인장 — 색을 못 보더라도 구분되도록 글자를 함께 찍습니다. */
     .seal {
@@ -480,7 +522,7 @@
          ======================================================== -->
     <div class="cards">
 
-      <div class="card" style="--accent: var(--celadon);">
+      <div class="card dist" style="--accent: var(--celadon);">
         <h2>분배</h2>
         <p class="fee">분배자 본인을 포함한 전체 인원입니다</p>
         <div class="field">
@@ -498,41 +540,43 @@
 
       <div class="card" style="--accent: var(--market);">
         <h2>수수료</h2>
-        <p class="fee">택배는 분배자 부담 · 직거래는 받는 사람 부담</p>
-        <div class="field">
-          <label for="aucFee">경매장 판매 수수료</label>
-          <input type="text" id="aucFee" inputmode="decimal">
-          <span class="unit">%</span>
-        </div>
-        <div class="field">
-          <label for="courFee">택배 수수료</label>
-          <input type="text" id="courFee" inputmode="decimal">
-          <span class="unit">%</span>
-        </div>
-        <div class="field">
-          <label for="courBase">택배비 (1건당)</label>
-          <input type="text" id="courBase" inputmode="numeric">
-          <span class="unit">만메소</span>
-        </div>
-        <div class="field">
-          <label for="tradeFee">직거래 교환 수수료</label>
-          <input type="text" id="tradeFee" inputmode="decimal">
-          <span class="unit">%</span>
+        <p class="fee">택배는 분배자 · 직거래는 받는 이 부담</p>
+        <div class="mini-grid">
+          <div class="mini">
+            <label for="aucFee">경매장 판매</label>
+            <div class="mrow"><input type="text" id="aucFee" inputmode="decimal"><span class="unit">%</span></div>
+          </div>
+          <div class="mini">
+            <label for="courFee">택배 수수료</label>
+            <div class="mrow"><input type="text" id="courFee" inputmode="decimal"><span class="unit">%</span></div>
+          </div>
+          <div class="mini">
+            <label for="courBase">택배비 (1건)</label>
+            <div class="mrow"><input type="text" id="courBase" inputmode="numeric"><span class="unit">만메소</span></div>
+          </div>
+          <div class="mini">
+            <label for="tradeFee">직거래 교환</label>
+            <div class="mrow"><input type="text" id="tradeFee" inputmode="decimal"><span class="unit">%</span></div>
+          </div>
         </div>
       </div>
 
       <div class="card" style="--accent: var(--gold);">
-        <h2>판매 아이템</h2>
-        <p class="fee">판매가는 만 단위로 (33222 = 3억 3,222만) · 가위로 짤라서 판 템은 ✂</p>
+        <h2>판매 아이템
+          <span class="h2-tools">
+            <button class="btn primary" id="add">＋ 줄 추가</button>
+            <button class="btn" id="clear">전체 삭제</button>
+          </span>
+        </h2>
+        <p class="fee">판매가는 억 · 만 · 메소 칸에 나눠서 · 가위로 짤라서 판 템은 ✂</p>
         <div id="items"></div>
-        <div class="row-tools">
-          <button class="btn primary" id="add">＋ 줄 추가</button>
-          <button class="btn" id="clear">전체 삭제</button>
-        </div>
-        <div class="field">
-          <label for="scPrice">가위값 (1개당)</label>
-          <input type="text" id="scPrice" inputmode="numeric">
-          <span class="unit">만메소</span>
+        <div class="field-3">
+          <label for="scEok">가위값 (1개당)</label>
+          <input type="text" id="scEok" inputmode="numeric" aria-label="가위값 억 단위">
+          <span class="u">억</span>
+          <input type="text" id="scMan" inputmode="numeric" aria-label="가위값 만 단위">
+          <span class="u">만</span>
+          <input type="text" id="scMeso" inputmode="numeric" placeholder="메소" aria-label="가위값 메소 단위">
         </div>
         <p class="note" id="netNote"></p>
       </div>
@@ -561,10 +605,12 @@
   (function () {
     'use strict';
 
-    // v2: 메소 입력을 전부 만 단위로 바꿈 (판매가·가위값·택배비·절사 단위)
-    const STORE_KEY = 'settle-calc-v2';
+    // v3: 판매가·가위값을 억/만/메소 세 칸으로 나눔
+    const STORE_KEY = 'settle-calc-v3';
+    const OLD_KEY   = 'settle-calc-v2';   // 만 단위 단일 칸이던 시절 — 읽어서 옮겨줍니다
 
     const MAN = 10000;   // 만 단위 입력 → 메소 환산 배수
+    const EOK = 1e8;
 
     // 인원은 사냥마다 바뀌므로 비워 둡니다. 수수료·택배비는 게임 규칙이라 채워 둡니다.
     const DEFAULTS = {
@@ -574,7 +620,9 @@
       courFee:  '8',
       courBase: '1',      // 1만메소
       tradeFee: '6',
-      scPrice:  '',
+      scEok:    '',
+      scMan:    '',
+      scMeso:   '',
       items:    []
     };
 
@@ -594,6 +642,14 @@
       return v.toLocaleString('ko-KR', { maximumFractionDigits: 2 });
     }
 
+    // 짧게 — 억/만 단위로만 (분배 카드 요약 상자용)
+    function mesoShort(v) {
+      const a = Math.abs(v);
+      if (a >= 1e8) return loose(v / 1e8) + '억';
+      if (a >= 1e4) return fmt(Math.floor(v / 1e4)) + '만';
+      return fmt(Math.round(v));
+    }
+
     // 큰 메소는 억/만 단위를 괄호로 덧붙입니다.
     function meso(v) {
       const s = fmt(Math.round(v)) + '메소';
@@ -611,7 +667,23 @@
       return isFinite(v) ? v : NaN;
     }
 
-    const NUM_IDS = ['people', 'unit', 'aucFee', 'courFee', 'courBase', 'tradeFee', 'scPrice'];
+    const NUM_IDS = ['people', 'unit', 'aucFee', 'courFee', 'courBase', 'tradeFee',
+                     'scEok', 'scMan', 'scMeso'];
+
+    // 억/만/메소 세 값(숫자)을 메소로 합칩니다.
+    function toMeso(eok, man, meso) {
+      return Math.round(eok * EOK + man * MAN + meso);
+    }
+
+    // 메소 금액을 억/만/메소 세 칸 값으로 쪼갭니다 (옛 저장값 이관용).
+    function splitMeso(total) {
+      total = Math.max(0, Math.round(total));
+      return {
+        eok:  Math.floor(total / EOK) || '',
+        man:  Math.floor(total % EOK / MAN) || '',
+        meso: total % MAN || ''
+      };
+    }
 
     /* ==========================================================
        아이템 줄
@@ -631,13 +703,26 @@
       name.value = d.name !== undefined ? d.name : '';
       name.addEventListener('input', onAny);
 
-      const price = document.createElement('input');
-      price.type = 'text';
-      price.dataset.key = 'price';
-      price.placeholder = '판매가 (만)';
-      price.inputMode = 'decimal';
-      price.value = d.price !== undefined ? d.price : '';
-      price.addEventListener('input', onAny);
+      // 판매가 — 억/만/메소 세 칸
+      function amtInput(key, ph) {
+        const inp = document.createElement('input');
+        inp.type = 'text';
+        inp.dataset.key = key;
+        if (ph) inp.placeholder = ph;
+        inp.inputMode = 'numeric';
+        inp.value = d[key] !== undefined ? d[key] : '';
+        inp.addEventListener('input', onAny);
+        return inp;
+      }
+      function unitLabel(text) {
+        const u = document.createElement('span');
+        u.className = 'u';
+        u.textContent = text;
+        return u;
+      }
+      const pEok  = amtInput('pEok', '');
+      const pMan  = amtInput('pMan', '');
+      const pMeso = amtInput('pMeso', '메소');
 
       const cut = document.createElement('button');
       cut.className = 'cut' + (d.cut === '1' ? ' on' : '');
@@ -659,7 +744,11 @@
       del.addEventListener('click', function () { row.remove(); onAny(); });
 
       row.appendChild(name);
-      row.appendChild(price);
+      row.appendChild(pEok);
+      row.appendChild(unitLabel('억'));
+      row.appendChild(pMan);
+      row.appendChild(unitLabel('만'));
+      row.appendChild(pMeso);
       row.appendChild(cut);
       row.appendChild(del);
       $('items').appendChild(row);
@@ -676,8 +765,9 @@
           o[inp.dataset.key] = inp.value;
         });
 
-        // 판매가는 만 단위로 입력받아 메소로 환산합니다.
-        const price = Math.round((Number((o.price || '0').replace(/[,\s]/g, '')) || 0) * MAN);
+        // 판매가 = 억 + 만 + 메소 세 칸의 합
+        const rd = function (key) { return Number((o[key] || '0').replace(/[,\s]/g, '')) || 0; };
+        const price = toMeso(rd('pEok'), rd('pMan'), rd('pMeso'));
         if (price > 0) {
           const net = price - Math.floor(price * aucFee);
           out.push({
@@ -741,7 +831,7 @@
       // 가위값 — ✂ 표시한 아이템 개수 × 1개당 가위값.
       // 분배자가 사서 올린 것이므로 나눌 금액에서 빼고 도로 가져갑니다.
       r.cutCount = items.filter(function (it) { return it.cut; }).length;
-      r.scPrice  = Math.max(0, Math.round(v.scPrice * MAN));     // 만 단위 입력
+      r.scPrice  = Math.max(0, toMeso(v.scEok, v.scMan, v.scMeso));
       r.scissors = r.cutCount * r.scPrice;
       r.pot      = r.netSum - r.scissors;      // 실제로 나눌 금액
 
@@ -918,7 +1008,7 @@
       s = section('분배', r.N + '명 전원이 똑같이 받습니다');
 
       if (r.R === 0) {
-        $('perNote').textContent = '1인당 ' + fmt(r.pot) + '메소';
+        $('perNote').textContent = '1인당 ' + mesoShort(r.pot);
         s.appendChild(row('kv best', [
           { cls: 'lbl', html: '<span class="seal">전원 동일</span>1인당' },
           { text: meso(r.pot) }
@@ -935,9 +1025,9 @@
       const tradeWins = !!t && (!p || t.net > p.x);
 
       const noteParts = [];
-      if (p) noteParts.push('택배 ' + fmt(p.x));
-      if (t) noteParts.push('직거래 ' + fmt(t.net));
-      $('perNote').textContent = '1인당 ' + noteParts.join(' · ') + '메소';
+      if (p) noteParts.push('택배 ' + mesoShort(p.x));
+      if (t) noteParts.push('직거래 ' + mesoShort(t.net));
+      $('perNote').textContent = '1인당 ' + noteParts.join(' · ');
 
       if (p) {
         s.appendChild(row('kv' + (!tradeWins ? ' best' : ''), [
@@ -989,10 +1079,8 @@
           { text: fmt(p.x) + '메소' + (p.leftover > 0 ? ' + 끝수 ' + fmt(p.leftover) + '메소' : '') + ' 보관' }
         ]));
         s.appendChild(row('dim kv', [
-          { cls: 'lbl', text: '검산' },
-          { text: '분배자 몫 ' + fmt(p.x) + ' + 총 지출 ' + fmt(p.perCost * r.R) +
-                  (p.leftover > 0 ? ' + 끝수 ' + fmt(p.leftover) : '') +
-                  ' = ' + fmt(p.x + p.perCost * r.R + p.leftover) + '  (' + potLbl + '과 일치)' }
+          { cls: 'lbl', text: '검산 (몫+지출+끝수)' },
+          { text: fmt(p.x + p.perCost * r.R + p.leftover) + ' = ' + potLbl + ' ✓' }
         ]));
         out.appendChild(s);
       }
@@ -1017,9 +1105,8 @@
           { text: fmt(t.net) + '메소' + (t.leftover > 0 ? ' + 끝수 ' + fmt(t.leftover) + '메소' : '') + ' 보관' }
         ]));
         s.appendChild(row('dim kv', [
-          { cls: 'lbl', text: '검산' },
-          { text: '건넴 ' + fmt(t.y) + ' × ' + r.R + '명 + 분배자 보관 ' + fmt(t.net + t.leftover) +
-                  ' = ' + fmt(t.y * r.R + t.net + t.leftover) + '  (' + potLbl + '과 일치)' }
+          { cls: 'lbl', text: '검산 (건넴×' + r.R + '+보관)' },
+          { text: fmt(t.y * r.R + t.net + t.leftover) + ' = ' + potLbl + ' ✓' }
         ]));
         out.appendChild(s);
       }
@@ -1053,6 +1140,24 @@
         const raw = localStorage.getItem(STORE_KEY);
         if (raw) data = JSON.parse(raw);
       } catch (e) { data = null; }
+
+      // 만 단위 단일 칸이던 v2 저장값을 세 칸으로 옮겨줍니다.
+      if (!data) {
+        try {
+          const old = JSON.parse(localStorage.getItem(OLD_KEY));
+          if (old) {
+            data = old;
+            const sc = splitMeso((Number(String(old.scPrice || '').replace(/[,\s]/g, '')) || 0) * MAN);
+            data.scEok = String(sc.eok); data.scMan = String(sc.man); data.scMeso = String(sc.meso);
+            if (Array.isArray(old.items)) {
+              data.items = old.items.map(function (o) {
+                const p = splitMeso((Number(String(o.price || '').replace(/[,\s]/g, '')) || 0) * MAN);
+                return { name: o.name, pEok: String(p.eok), pMan: String(p.man), pMeso: String(p.meso), cut: o.cut };
+              });
+            }
+          }
+        } catch (e) { data = null; }
+      }
 
       applyDefaults();
 
