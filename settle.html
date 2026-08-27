@@ -127,6 +127,12 @@
       grid-template-columns: repeat(auto-fit, minmax(272px, 1fr));
       gap: 16px;
       margin-bottom: 22px;
+      align-items: start;
+    }
+
+    /* 넓은 화면에서는 세 카드가 한 줄 — 아이템 카드가 남는 폭을 씁니다 */
+    @media (min-width: 920px) {
+      .cards { grid-template-columns: 272px 272px 1fr; }
     }
 
     .card {
@@ -257,42 +263,23 @@
       line-height: 1.7;
     }
 
-    .table-scroll { overflow-x: auto; margin-top: 14px; }
-
-    table { border-collapse: collapse; width: 100%; min-width: 560px; }
-
-    th {
-      font-weight: 400;
-      font-size: 13px;
-      color: var(--ink-mid);
-      text-align: right;
-      padding: 0 8px 8px;
-      border-bottom: 2px solid var(--line);
-      white-space: nowrap;
+    /* 아이템 줄 — 카드 안에 이름·판매가만 컴팩트하게 */
+    .irow {
+      display: grid;
+      grid-template-columns: 1fr 112px 44px;
+      gap: 8px;
+      align-items: center;
+      margin-top: 9px;
     }
-    th:first-child { text-align: left; }
-
-    td { padding: 7px 5px; border-bottom: 1px solid var(--rule); }
-    td:first-child { padding-left: 0; }
-    td input[type="text"] { min-width: 128px; font-size: 17px; }
-    td input.name {
+    .irow input[type="text"] { font-size: 17px; }
+    .irow input.name {
       text-align: left;
       font-family: var(--font-ui);
-      min-width: 150px;
+      font-size: 15px;
     }
 
-    /* 표 안의 계산값 (실수령) */
-    td.calc {
-      text-align: right;
-      font-family: var(--font-num);
-      font-variant-numeric: tabular-nums lining-nums;
-      font-size: 17px;
-      font-weight: 700;
-      color: var(--celadon);
-      white-space: nowrap;
-      padding-right: 8px;
-    }
-    td.calc .sub { color: var(--ink-soft); font-size: 12px; font-weight: 400; }
+    .row-tools { display: flex; gap: 8px; margin-top: 13px; }
+    .row-tools .btn { flex: 1 1 auto; padding: 9px 8px; font-size: 14px; }
 
     .del {
       min-width: 44px;
@@ -420,46 +407,9 @@
     }
 
     /* ============================================================
-       좁은 화면 — 표를 아이템 한 개당 카드 하나로 접습니다.
+       좁은 화면
        ============================================================ */
     @media (max-width: 640px) {
-      .table-scroll { overflow-x: visible; }
-      table { min-width: 0; }
-      thead { display: none; }
-      tbody, tbody tr, tbody td { display: block; width: 100%; }
-
-      tbody tr {
-        border: 2px solid var(--line);
-        padding: 10px 12px 12px;
-        margin-bottom: 14px;
-      }
-
-      tbody td {
-        border: none;
-        padding: 6px 0;
-        display: grid;
-        grid-template-columns: 104px 1fr;
-        align-items: center;
-        gap: 10px;
-      }
-      tbody td::before {
-        content: attr(data-label);
-        font-size: 13px;
-        color: var(--ink-mid);
-      }
-      tbody td:first-child { padding-left: 0; }
-      tbody td input[type="text"] { min-width: 0; }
-      td.calc { text-align: left; padding-right: 0; }
-
-      tbody td.del-cell {
-        display: flex;
-        justify-content: flex-end;
-        padding-top: 10px;
-        margin-top: 4px;
-        border-top: 1px solid var(--rule);
-      }
-      tbody td.del-cell::before { content: none; }
-
       .r.kv { grid-template-columns: 1fr; }
       .r.kv .num { text-align: left; }
       .field { grid-template-columns: 1fr 130px 44px; }
@@ -524,36 +474,17 @@
         </div>
       </div>
 
-    </div>
-
-    <!-- ========================================================
-         아이템
-         ======================================================== -->
-    <div class="panel">
-      <h2>판매 아이템</h2>
-      <p class="hint">
-        사냥에서 먹어 경매장에 판 아이템의 판매가를 넣습니다.
-        경매장 수수료를 뺀 실수령가가 오른쪽에 바로 보입니다. 빈 줄은 건너뜁니다.
-      </p>
-
-      <div class="table-scroll">
-        <table>
-          <thead>
-            <tr>
-              <th>이름</th>
-              <th>판매가 (메소)</th>
-              <th>실수령</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody id="items"></tbody>
-        </table>
+      <div class="card" style="--accent: var(--gold);">
+        <h2>판매 아이템</h2>
+        <p class="fee">경매장에 판 가격 그대로 · 빈 줄은 건너뜁니다</p>
+        <div id="items"></div>
+        <div class="row-tools">
+          <button class="btn primary" id="add">＋ 줄 추가</button>
+          <button class="btn" id="clear">전체 삭제</button>
+        </div>
+        <p class="note" id="netNote"></p>
       </div>
 
-      <div class="toolbar" style="margin: 14px 0 0;">
-        <button class="btn primary" id="add">＋ 줄 추가</button>
-        <button class="btn" id="clear">전체 삭제</button>
-      </div>
     </div>
 
     <!-- ========================================================
@@ -627,76 +558,63 @@
     const NUM_IDS = ['people', 'unit', 'aucFee', 'courFee', 'courBase'];
 
     /* ==========================================================
-       아이템 표
+       아이템 줄
        ========================================================== */
-    const COLS = [
-      { key: 'name',  cls: 'name', ph: '아이템 이름', label: '이름' },
-      { key: 'price', cls: '',     ph: '0',          label: '판매가 (메소)' }
-    ];
+    let lastNetSum = 0;   // 카드 하단 요약 상자에 쓰는 실수령 합계
 
     function addRow(data) {
       const d = data || {};
-      const tr = document.createElement('tr');
+      const row = document.createElement('div');
+      row.className = 'irow';
 
-      COLS.forEach(function (c) {
-        const td = document.createElement('td');
-        td.dataset.label = c.label;
-        const inp = document.createElement('input');
-        inp.type = 'text';
-        inp.className = c.cls;
-        inp.dataset.key = c.key;
-        inp.placeholder = c.ph;
-        if (c.key !== 'name') inp.inputMode = 'decimal';
-        inp.value = d[c.key] !== undefined ? d[c.key] : '';
-        inp.addEventListener('input', onAny);
-        td.appendChild(inp);
-        tr.appendChild(td);
-      });
+      const name = document.createElement('input');
+      name.type = 'text';
+      name.className = 'name';
+      name.dataset.key = 'name';
+      name.placeholder = '아이템 이름';
+      name.value = d.name !== undefined ? d.name : '';
+      name.addEventListener('input', onAny);
 
-      // 실수령 표시칸 (계산값)
-      const calc = document.createElement('td');
-      calc.className = 'calc';
-      calc.dataset.label = '실수령';
-      tr.appendChild(calc);
+      const price = document.createElement('input');
+      price.type = 'text';
+      price.dataset.key = 'price';
+      price.placeholder = '판매가';
+      price.inputMode = 'decimal';
+      price.value = d.price !== undefined ? d.price : '';
+      price.addEventListener('input', onAny);
 
-      const td = document.createElement('td');
-      td.className = 'del-cell';
       const del = document.createElement('button');
       del.className = 'del';
       del.type = 'button';
       del.title = '이 줄 삭제';
       del.textContent = '✕';
-      del.addEventListener('click', function () { tr.remove(); onAny(); });
-      td.appendChild(del);
-      tr.appendChild(td);
+      del.addEventListener('click', function () { row.remove(); onAny(); });
 
-      $('items').appendChild(tr);
+      row.appendChild(name);
+      row.appendChild(price);
+      row.appendChild(del);
+      $('items').appendChild(row);
     }
 
-    // 표를 읽어 아이템 목록으로 바꿉니다. 아무것도 안 넣은 줄은 건너뜁니다.
+    // 줄을 읽어 아이템 목록으로 바꿉니다. 아무것도 안 넣은 줄은 건너뜁니다.
     function readItems(aucFee) {
-      const rows = Array.prototype.slice.call($('items').querySelectorAll('tr'));
+      const rows = Array.prototype.slice.call($('items').querySelectorAll('.irow'));
       const out = [];
 
-      rows.forEach(function (tr) {
+      rows.forEach(function (row) {
         const o = {};
-        tr.querySelectorAll('input').forEach(function (inp) {
+        row.querySelectorAll('input').forEach(function (inp) {
           o[inp.dataset.key] = inp.value;
         });
 
         const price = Number((o.price || '0').replace(/[,\s]/g, '')) || 0;
-        const calc = tr.querySelector('td.calc');
-
         if (price > 0) {
           const net = price - Math.floor(price * aucFee);
-          calc.innerHTML = fmt(net) +
-            (net >= 1e4 ? ' <span class="sub">(' + loose(net / (net >= 1e8 ? 1e8 : 1e4)) + (net >= 1e8 ? '억' : '만') + ')</span>' : '');
           out.push({ name: (o.name || '').trim() || '(이름 없음)', price: price, net: net });
-        } else {
-          calc.textContent = '';
         }
       });
 
+      lastNetSum = out.reduce(function (s, it) { return s + it.net; }, 0);
       return out;
     }
 
@@ -821,6 +739,9 @@
       const r = compute();
 
       $('perNote').textContent = '';
+      $('netNote').textContent = (!r.error && lastNetSum > 0)
+        ? '실수령 합계 ' + fmt(lastNetSum) + '메소'
+        : '';
 
       if (r.error) {
         const p = document.createElement('p');
@@ -947,9 +868,9 @@
       try {
         const data = {};
         NUM_IDS.forEach(function (id) { data[id] = $(id).value; });
-        data.items = Array.prototype.slice.call($('items').querySelectorAll('tr')).map(function (tr) {
+        data.items = Array.prototype.slice.call($('items').querySelectorAll('.irow')).map(function (row) {
           const o = {};
-          tr.querySelectorAll('input').forEach(function (inp) { o[inp.dataset.key] = inp.value; });
+          row.querySelectorAll('input').forEach(function (inp) { o[inp.dataset.key] = inp.value; });
           return o;
         });
         localStorage.setItem(STORE_KEY, JSON.stringify(data));
@@ -974,7 +895,7 @@
           data.items.forEach(addRow);
         }
       }
-      if (!$('items').querySelector('tr')) addRow();
+      if (!$('items').querySelector('.irow')) addRow();
     }
 
     function applyDefaults() {
