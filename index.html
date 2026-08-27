@@ -10,7 +10,6 @@
   <meta name="theme-color" content="#1c1813">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700;800&family=Bitter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     /* ============================================================
        디자인 토큰 — 계산기·타이머와 같은 값을 씁니다.
@@ -32,8 +31,8 @@
       --indigo:     #85b6d4;   /* 타이머 */
       --celadon:    #8fc0a0;   /* 정산 */
 
-      --font-ui:  'Nanum Myeongjo', 'Batang', serif;
-      --font-num: 'Bitter', 'Nanum Myeongjo', Georgia, serif;
+      --font-ui:  'Gulim', '굴림', 'Malgun Gothic', sans-serif;
+      --font-num: 'Gulim', '굴림', 'Malgun Gothic', sans-serif;
     }
 
     * { box-sizing: border-box; }
@@ -185,16 +184,12 @@
       box-shadow: 5px 5px 0 rgba(0, 0, 0, .45);
     }
 
-    .tile.static .desc b { color: var(--ink); font-weight: 700; }
-
-    .tile.static .mail {
-      color: var(--accent);
+    /* 이메일·닉네임 — 어두운 지면과 또렷이 대비되게 금박으로 */
+    .tile.static .desc b {
+      color: var(--gold);
       font-weight: 700;
-      text-decoration: none;
-      border-bottom: 1px solid var(--accent);
+      font-size: 16px;
     }
-    .tile.static .mail:hover { background: var(--paper-band); }
-    .tile.static .mail:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 
     /* ============================================================
        하단
@@ -317,7 +312,7 @@
 
         <span class="name">문의 · 후원</span>
         <p class="desc">
-          문의 <a class="mail" href="mailto:felgoo1234@gmail.com">felgoo1234@gmail.com</a><br>
+          문의 <b>felgoo1234@gmail.com</b><br>
           후원 닉네임 <b>택배용쿠팡맨</b><br>
           사용하고 감동이 있으시다면 택배....ㅎ 사랑합니다
         </p>

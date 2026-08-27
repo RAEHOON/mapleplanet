@@ -10,7 +10,6 @@
   <meta name="theme-color" content="#1c1813">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700;800&family=Bitter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     /* ============================================================
        디자인 토큰 — 색/간격/모양을 여기 한 곳에서만 관리합니다.
@@ -47,9 +46,9 @@
       --shadow-panel: 5px 5px 0 rgba(0,0,0,.45);
       --shadow-key:   3px 3px 0 rgba(0,0,0,.5);
 
-      --font-display: 'Nanum Myeongjo', 'Batang', serif;
-      --font-ui:      'Nanum Myeongjo', 'Batang', serif;
-      --font-num:     'Bitter', 'Nanum Myeongjo', Georgia, serif;
+      --font-display: 'Gulim', '굴림', 'Malgun Gothic', sans-serif;
+      --font-ui:      'Gulim', '굴림', 'Malgun Gothic', sans-serif;
+      --font-num:     'Gulim', '굴림', 'Malgun Gothic', sans-serif;
     }
 
     * { box-sizing: border-box; }
@@ -1580,7 +1579,7 @@
 
       ctx.textAlign = 'center';
       ctx.fillStyle = '#dcbb4c';
-      ctx.font = 'bold 26px "Nanum Myeongjo", "Batang", serif';
+      ctx.font = 'bold 26px "Gulim", "굴림", "Malgun Gothic", sans-serif';
       ctx.fillText('유혹 타이머', W / 2, 34);
 
       let y = 62;
@@ -1607,13 +1606,13 @@
         // 이름
         ctx.textAlign = 'left';
         ctx.fillStyle = t.running ? '#f6edd8' : '#6a5c46';
-        ctx.font = '15px "Nanum Myeongjo", "Batang", serif';
+        ctx.font = '15px "Gulim", "굴림", "Malgun Gothic", sans-serif';
         ctx.fillText(clip(t.name, 10), 18, y + 14);
 
         // 남은 시간
         ctx.textAlign = 'right';
         ctx.fillStyle = color;
-        ctx.font = 'bold 30px "Bitter", "Nanum Myeongjo", Georgia, serif';
+        ctx.font = 'bold 30px "Gulim", "굴림", "Malgun Gothic", sans-serif';
         ctx.fillText(t.running || t.paused !== null ? p.m + ':' + p.s : '--:--', W - 18, y + 20);
 
         // 진행바
