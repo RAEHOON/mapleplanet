@@ -266,11 +266,26 @@
     /* 아이템 줄 — 카드 안에 이름·판매가만 컴팩트하게 */
     .irow {
       display: grid;
-      grid-template-columns: 1fr 112px 44px;
-      gap: 8px;
+      grid-template-columns: 1fr 104px 44px 44px;
+      gap: 6px;
       align-items: center;
       margin-top: 9px;
     }
+
+    /* 가위 표시 — 짤라서 판 아이템 (가위값을 나눌 금액에서 뺍니다) */
+    .cut {
+      min-width: 44px;
+      min-height: 44px;
+      background: none;
+      border: 2px solid var(--line);
+      color: var(--ink-faint);
+      font-size: 16px;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .cut:hover { border-color: var(--seal); color: var(--seal); }
+    .cut.on { background: var(--seal); border-color: var(--seal); color: var(--paper-in); }
+    .cut:focus-visible { outline: 3px solid var(--seal); outline-offset: 2px; }
     .irow input[type="text"] { font-size: 17px; }
     .irow input.name {
       text-align: left;
@@ -456,7 +471,7 @@
 
       <div class="card" style="--accent: var(--market);">
         <h2>수수료</h2>
-        <p class="fee">택배비와 택배 수수료는 분배자가 부담합니다</p>
+        <p class="fee">택배는 분배자 부담 · 직거래는 받는 사람 부담</p>
         <div class="field">
           <label for="aucFee">경매장 판매 수수료</label>
           <input type="text" id="aucFee" inputmode="decimal">
@@ -472,15 +487,25 @@
           <input type="text" id="courBase" inputmode="numeric">
           <span class="unit">메소</span>
         </div>
+        <div class="field">
+          <label for="tradeFee">직거래 교환 수수료</label>
+          <input type="text" id="tradeFee" inputmode="decimal">
+          <span class="unit">%</span>
+        </div>
       </div>
 
       <div class="card" style="--accent: var(--gold);">
         <h2>판매 아이템</h2>
-        <p class="fee">경매장에 판 가격 그대로 · 빈 줄은 건너뜁니다</p>
+        <p class="fee">경매장에 판 가격 그대로 · 가위로 짤라서 판 템은 ✂ 을 눌러 표시</p>
         <div id="items"></div>
         <div class="row-tools">
           <button class="btn primary" id="add">＋ 줄 추가</button>
           <button class="btn" id="clear">전체 삭제</button>
+        </div>
+        <div class="field">
+          <label for="scPrice">가위값 (1개당)</label>
+          <input type="text" id="scPrice" inputmode="numeric">
+          <span class="unit">메소</span>
         </div>
         <p class="note" id="netNote"></p>
       </div>
@@ -519,6 +544,8 @@
       aucFee:   '10',
       courFee:  '8',
       courBase: '10000',
+      tradeFee: '6',
+      scPrice:  '',
       items:    []
     };
 
@@ -555,7 +582,7 @@
       return isFinite(v) ? v : NaN;
     }
 
-    const NUM_IDS = ['people', 'unit', 'aucFee', 'courFee', 'courBase'];
+    const NUM_IDS = ['people', 'unit', 'aucFee', 'courFee', 'courBase', 'tradeFee', 'scPrice'];
 
     /* ==========================================================
        아이템 줄
@@ -583,6 +610,18 @@
       price.value = d.price !== undefined ? d.price : '';
       price.addEventListener('input', onAny);
 
+      const cut = document.createElement('button');
+      cut.className = 'cut' + (d.cut === '1' ? ' on' : '');
+      cut.type = 'button';
+      cut.title = '가위로 짤라서 판 아이템 — 가위값을 나눌 금액에서 뺍니다';
+      cut.textContent = '✂';
+      cut.setAttribute('aria-pressed', d.cut === '1' ? 'true' : 'false');
+      cut.addEventListener('click', function () {
+        cut.classList.toggle('on');
+        cut.setAttribute('aria-pressed', cut.classList.contains('on') ? 'true' : 'false');
+        onAny();
+      });
+
       const del = document.createElement('button');
       del.className = 'del';
       del.type = 'button';
@@ -592,6 +631,7 @@
 
       row.appendChild(name);
       row.appendChild(price);
+      row.appendChild(cut);
       row.appendChild(del);
       $('items').appendChild(row);
     }
@@ -610,7 +650,12 @@
         const price = Number((o.price || '0').replace(/[,\s]/g, '')) || 0;
         if (price > 0) {
           const net = price - Math.floor(price * aucFee);
-          out.push({ name: (o.name || '').trim() || '(이름 없음)', price: price, net: net });
+          out.push({
+            name: (o.name || '').trim() || '(이름 없음)',
+            price: price,
+            net: net,
+            cut: row.querySelector('.cut').classList.contains('on')
+          });
         }
       });
 
@@ -649,41 +694,70 @@
       if (need.length) return { need: need };
 
       const r = {};
-      r.N       = Math.max(1, Math.round(v.people));
-      r.R       = r.N - 1;                                  // 택배를 받을 인원
-      r.unit    = Math.max(1, Math.round(v.unit) || 1);
-      r.courFee = Math.min(0.5, Math.max(0, v.courFee / 100));
-      r.base    = Math.max(0, Math.round(v.courBase));
-      r.items   = items;
+      r.N        = Math.max(1, Math.round(v.people));
+      r.R        = r.N - 1;                                  // 나눠 받을 인원
+      r.unit     = Math.max(1, Math.round(v.unit) || 1);
+      r.courFee  = Math.min(0.5, Math.max(0, v.courFee / 100));
+      r.tradeFee = Math.min(0.5, Math.max(0, v.tradeFee / 100));
+      r.tradePct = v.tradeFee;
+      r.courPct  = v.courFee;
+      r.base     = Math.max(0, Math.round(v.courBase));
+      r.items    = items;
 
       r.gross  = items.reduce(function (s, it) { return s + it.price; }, 0);
       r.netSum = items.reduce(function (s, it) { return s + it.net; }, 0);
       r.aucCut = r.gross - r.netSum;
 
-      if (r.R === 0) {
-        r.x = r.netSum;
-        r.fee = 0; r.perCost = 0; r.leftover = 0;
-        return r;
+      // 가위값 — ✂ 표시한 아이템 개수 × 1개당 가위값.
+      // 분배자가 사서 올린 것이므로 나눌 금액에서 빼고 도로 가져갑니다.
+      r.cutCount = items.filter(function (it) { return it.cut; }).length;
+      r.scPrice  = Math.max(0, Math.round(v.scPrice));
+      r.scissors = r.cutCount * r.scPrice;
+      r.pot      = r.netSum - r.scissors;      // 실제로 나눌 금액
+
+      if (r.cutCount > 0 && !(r.scPrice > 0)) return { need: ['가위값 (1개당)'] };
+      if (r.pot <= 0) {
+        return { error: '가위값이 실수령 합계보다 큽니다. 가위값이나 ✂ 표시를 확인해 주세요.' };
       }
 
-      const raw = (r.netSum - r.base * r.R) / (1 + (1 + r.courFee) * r.R);
-      let x = Math.floor(raw / r.unit) * r.unit;
+      if (r.R === 0) return r;
 
-      // 수수료 올림 때문에 총액을 넘길 수 있으니 안전하게 한 단위씩 내립니다.
-      let fee = 0, perCost = 0, leftover = -1;
-      while (x > 0) {
-        fee = Math.ceil(x * r.courFee);
-        perCost = x + fee + r.base;
-        leftover = r.netSum - x - perCost * r.R;
-        if (leftover >= 0) break;
-        x -= r.unit;
+      // ── 택배 — 분배자가 건당 수수료+택배비를 부담합니다.
+      //   수수료 올림 때문에 총액을 넘길 수 있으니 안전하게 한 단위씩 내립니다.
+      {
+        const raw = (r.pot - r.base * r.R) / (1 + (1 + r.courFee) * r.R);
+        let x = Math.floor(raw / r.unit) * r.unit;
+        let fee = 0, perCost = 0, leftover = -1;
+        while (x > 0) {
+          fee = Math.ceil(x * r.courFee);
+          perCost = x + fee + r.base;
+          leftover = r.pot - x - perCost * r.R;
+          if (leftover >= 0) break;
+          x -= r.unit;
+        }
+        r.parcel = x > 0 ? { x: x, fee: fee, perCost: perCost, leftover: leftover } : null;
       }
 
-      if (x <= 0) {
-        return { error: '실수령 합계가 택배비를 감당하지 못합니다. 인원을 줄이거나 절사 단위를 낮춰 보세요.' };
+      // ── 직거래 교환 — 받는 사람이 수수료를 냅니다.
+      //   건네는 금액 y, 받는 사람 실수령 y−수수료. 분배자 보관분이
+      //   받는 사람 실수령과 같아지도록 y = 나눌금액 ÷ (인원 − 수수료율) 입니다.
+      {
+        const raw = r.pot / (r.R + 1 - r.tradeFee);
+        let y = Math.floor(raw / r.unit) * r.unit;
+        let tfee = 0, net = 0, leftover = -1;
+        while (y > 0) {
+          tfee = Math.ceil(y * r.tradeFee);
+          net = y - tfee;
+          leftover = (r.pot - y * r.R) - net;
+          if (leftover >= 0) break;
+          y -= r.unit;
+        }
+        r.trade = y > 0 ? { y: y, tfee: tfee, net: net, leftover: leftover } : null;
       }
 
-      r.x = x; r.fee = fee; r.perCost = perCost; r.leftover = leftover;
+      if (!r.parcel && !r.trade) {
+        return { error: '나눌 금액이 너무 적습니다. 인원을 줄이거나 절사 단위를 낮춰 보세요.' };
+      }
       return r;
     }
 
@@ -776,7 +850,7 @@
         return;
       }
 
-      $('perNote').textContent = '1인당 ' + fmt(r.x) + '메소';
+      const potLbl = r.scissors > 0 ? '나눌 금액' : '실수령 합계';
 
       /* ---- 판매 정산 ---- */
       let s = section('판매 정산', r.items.length + '종 · 경매장 수수료를 뺀 실수령');
@@ -788,69 +862,134 @@
         { cls: 'lbl', text: '경매장 수수료' },
         { text: '− ' + meso(r.aucCut) }
       ]));
-      s.appendChild(row('kv best', [
+      s.appendChild(row('kv' + (r.scissors > 0 ? '' : ' best'), [
         { cls: 'lbl', text: '실수령 합계' },
         { text: meso(r.netSum) }
       ]));
+      if (r.scissors > 0) {
+        s.appendChild(row('kv', [
+          { cls: 'lbl', text: '가위값 (' + r.cutCount + '개 · 분배자 회수)' },
+          { text: '− ' + meso(r.scissors) }
+        ]));
+        s.appendChild(row('kv best', [
+          { cls: 'lbl', text: '나눌 금액' },
+          { text: meso(r.pot) }
+        ]));
+      }
       r.items.forEach(function (it) {
         s.appendChild(row('dim kv', [
-          { cls: 'lbl', text: it.name },
+          { cls: 'lbl', text: it.name + (it.cut ? ' ✂' : '') },
           { text: fmt(it.price) + '  →  실수령 ' + fmt(it.net) }
         ]));
       });
       out.appendChild(s);
 
-      /* ---- 분배 ---- */
+      /* ---- 분배 — 방법별 1인당 ---- */
       s = section('분배', r.N + '명 전원이 똑같이 받습니다');
-      s.appendChild(row('kv best', [
-        { cls: 'lbl', html: '<span class="seal">전원 동일</span>1인당' },
-        { text: meso(r.x) }
-      ]));
-      if (r.R > 0) {
-        s.appendChild(row('kv', [
-          { cls: 'lbl', text: '파티원 ' + r.R + '명' },
-          { text: '각자 택배로 ' + fmt(r.x) + '메소 받음' }
+
+      if (r.R === 0) {
+        $('perNote').textContent = '1인당 ' + fmt(r.pot) + '메소';
+        s.appendChild(row('kv best', [
+          { cls: 'lbl', html: '<span class="seal">전원 동일</span>1인당' },
+          { text: meso(r.pot) }
         ]));
-        s.appendChild(row('kv', [
-          { cls: 'lbl', text: '분배자' },
-          { text: fmt(r.x) + '메소' + (r.leftover > 0 ? ' + 끝수 ' + fmt(r.leftover) + '메소 보관' : ' 보관') }
-        ]));
-      } else {
         s.appendChild(row('dim kv', [
           { cls: 'lbl', text: '혼자 사냥' },
           { text: '전액 본인 몫입니다' }
         ]));
+        out.appendChild(s);
+        return;
+      }
+
+      const p = r.parcel, t = r.trade;
+      const tradeWins = !!t && (!p || t.net > p.x);
+
+      const noteParts = [];
+      if (p) noteParts.push('택배 ' + fmt(p.x));
+      if (t) noteParts.push('직거래 ' + fmt(t.net));
+      $('perNote').textContent = '1인당 ' + noteParts.join(' · ') + '메소';
+
+      if (p) {
+        s.appendChild(row('kv' + (!tradeWins ? ' best' : ''), [
+          { cls: 'lbl', html: (!tradeWins ? '<span class="seal">유리</span>' : '') + '택배로 나누면' },
+          { text: '1인당 ' + meso(p.x) }
+        ]));
+      }
+      if (t) {
+        s.appendChild(row('kv' + (tradeWins ? ' best' : ''), [
+          { cls: 'lbl', html: (tradeWins ? '<span class="seal">유리</span>' : '') + '직거래로 나누면' },
+          { text: '1인당 ' + meso(t.net) }
+        ]));
+      }
+      if (p && t) {
+        s.appendChild(row('dim kv', [
+          { cls: 'lbl', text: '차이' },
+          { text: '1인당 ' + fmt(Math.abs(t.net - p.x)) + '메소' }
+        ]));
+      }
+      if (!p) {
+        s.appendChild(row('dim kv', [
+          { cls: 'lbl', text: '택배' },
+          { text: '나눌 금액이 택배비를 감당하지 못해 뺐습니다' }
+        ]));
       }
       out.appendChild(s);
 
-      /* ---- 분배자 택배 부담 ---- */
-      if (r.R > 0) {
-        s = section('분배자 택배 부담', '택배 ' + r.R + '건 · 수수료는 올림으로 넉넉하게');
-        s.appendChild(row('kv', [
+      /* ---- 택배로 나눌 때 ---- */
+      if (p) {
+        s = section('택배로 나눌 때', '택배 ' + r.R + '건 · 수수료 ' + r.courPct + '%+택배비는 분배자 부담');
+        s.appendChild(row('kv best', [
           { cls: 'lbl', text: '1건당 보낼 금액' },
-          { text: fmt(r.x) + '메소' }
+          { text: meso(p.x) }
         ]));
         s.appendChild(row('kv', [
           { cls: 'lbl', text: '1건당 택배 수수료' },
-          { text: '+ ' + fmt(r.fee) + '메소' }
+          { text: '+ ' + fmt(p.fee) + '메소' }
         ]));
         s.appendChild(row('kv', [
           { cls: 'lbl', text: '1건당 택배비' },
           { text: '+ ' + fmt(r.base) + '메소' }
         ]));
-        s.appendChild(row('kv best', [
-          { cls: 'lbl', text: '1건당 지출' },
-          { text: meso(r.perCost) }
+        s.appendChild(row('kv', [
+          { cls: 'lbl', text: '1건당 지출 · ' + r.R + '건 총 지출' },
+          { text: fmt(p.perCost) + '메소 · ' + meso(p.perCost * r.R) }
         ]));
         s.appendChild(row('kv', [
-          { cls: 'lbl', text: r.R + '건 총 지출' },
-          { text: meso(r.perCost * r.R) }
+          { cls: 'lbl', text: '분배자' },
+          { text: fmt(p.x) + '메소' + (p.leftover > 0 ? ' + 끝수 ' + fmt(p.leftover) + '메소' : '') + ' 보관' }
         ]));
         s.appendChild(row('dim kv', [
           { cls: 'lbl', text: '검산' },
-          { text: '분배자 몫 ' + fmt(r.x) + ' + 총 지출 ' + fmt(r.perCost * r.R) +
-                  (r.leftover > 0 ? ' + 끝수 ' + fmt(r.leftover) : '') +
-                  ' = ' + fmt(r.x + r.perCost * r.R + r.leftover) + '  (실수령 합계와 일치)' }
+          { text: '분배자 몫 ' + fmt(p.x) + ' + 총 지출 ' + fmt(p.perCost * r.R) +
+                  (p.leftover > 0 ? ' + 끝수 ' + fmt(p.leftover) : '') +
+                  ' = ' + fmt(p.x + p.perCost * r.R + p.leftover) + '  (' + potLbl + '과 일치)' }
+        ]));
+        out.appendChild(s);
+      }
+
+      /* ---- 직거래로 나눌 때 ---- */
+      if (t) {
+        s = section('직거래로 나눌 때', '교환창 수수료 ' + r.tradePct + '%는 받는 사람 부담');
+        s.appendChild(row('kv best', [
+          { cls: 'lbl', text: '1인당 건넬 금액' },
+          { text: meso(t.y) }
+        ]));
+        s.appendChild(row('kv', [
+          { cls: 'lbl', text: '받는 사람 수수료' },
+          { text: '− ' + fmt(t.tfee) + '메소' }
+        ]));
+        s.appendChild(row('kv', [
+          { cls: 'lbl', text: '받는 사람 실수령' },
+          { text: fmt(t.net) + '메소' }
+        ]));
+        s.appendChild(row('kv', [
+          { cls: 'lbl', text: '분배자' },
+          { text: fmt(t.net) + '메소' + (t.leftover > 0 ? ' + 끝수 ' + fmt(t.leftover) + '메소' : '') + ' 보관' }
+        ]));
+        s.appendChild(row('dim kv', [
+          { cls: 'lbl', text: '검산' },
+          { text: '건넴 ' + fmt(t.y) + ' × ' + r.R + '명 + 분배자 보관 ' + fmt(t.net + t.leftover) +
+                  ' = ' + fmt(t.y * r.R + t.net + t.leftover) + '  (' + potLbl + '과 일치)' }
         ]));
         out.appendChild(s);
       }
@@ -871,6 +1010,7 @@
         data.items = Array.prototype.slice.call($('items').querySelectorAll('.irow')).map(function (row) {
           const o = {};
           row.querySelectorAll('input').forEach(function (inp) { o[inp.dataset.key] = inp.value; });
+          o.cut = row.querySelector('.cut').classList.contains('on') ? '1' : '';
           return o;
         });
         localStorage.setItem(STORE_KEY, JSON.stringify(data));
