@@ -261,14 +261,43 @@
     .field2 > label { font-size: 13px; color: var(--ink-mid); }
     .field2 .unit { font-size: 12px; color: var(--ink-soft); white-space: nowrap; }
 
-    /* 판매 결과 — 택배와 직거래를 한 표에 (판매량 · 택배 수수료/햄구이 · 직거래 수령/햄구이) */
-    .r.sell5 { grid-template-columns: 90px 150px 1fr 150px 1fr; }
+    /* 판매 결과 — 택배와 직거래를 한 표에 (판매량 · 택배 수수료/햄구이 · 직거래 수령/햄구이)
+       열 너비를 내용에 맞춰 고정하고 왼쪽으로 모읍니다. 부모 폭에 늘리면 글씨가 뿔뿔이 흩어집니다. */
+    .r.sell5 {
+      grid-template-columns: 96px 150px 200px 150px 200px;
+      justify-content: start;
+    }
 
     #sellOut .section { margin-top: 8px; }
     #sellOut .r { padding: 5px 8px; font-size: 15px; }
-    #sellOut .r .lbl { font-size: 14px; }
+    /* 숫자도 각 칸의 시작점(왼쪽)에 맞춥니다 — 끝점 맞춤은 눈이 널을 뜁니다 */
+    #sellOut .r .num { text-align: left; }
+    #sellOut .r .lbl { font-size: 14px; white-space: nowrap; }
     #sellOut .r.best { font-size: 16px; }
     #sellOut .r.best .lbl { font-size: 15px; }
+    /* 요약 줄 — 라벨은 줄바꿈 없이 내용만큼만, 내용도 표처럼 왼쪽에 붙입니다 */
+    #sellOut .r.kv { grid-template-columns: auto 1fr; }
+    #sellOut .r.kv .num { text-align: left; }
+
+    /* 택배 묶음 / 직거래 묶음 머리띠 — 표 위에 색 괘선으로 영역을 나눕니다 */
+    .r.sellgrp {
+      grid-template-columns: 96px 364px 364px;
+      justify-content: start;
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+    .r.sellgrp .grp {
+      font-family: var(--font-ui);
+      font-size: 13px;
+      font-weight: 700;
+      padding-bottom: 3px;
+      border-bottom: 2px solid var(--line);
+    }
+    .r.sellgrp .grp.parcelc { color: var(--parcel); border-color: var(--parcel); }
+    .r.sellgrp .grp.marketc { color: var(--market); border-color: var(--market); }
+
+    /* 두 묶음 사이 세로 구분선 */
+    .r.sell5 > :nth-child(4) { border-left: 2px solid var(--rule); padding-left: 14px; }
 
     /* 결과 패널 머리줄 오른쪽의 작은 버튼 */
     .h2-tools { margin-left: auto; display: flex; gap: 7px; }
@@ -541,6 +570,8 @@
       /* 판매 표는 머리글까지 같은 모양으로 접혀 짝이 맞습니다 */
       .r.sell5 { grid-template-columns: 1fr 1fr; }
       .r.sell5 .num { text-align: left; }
+      .r.sellgrp { display: none; }
+      .r.sell5 > :nth-child(4) { border-left: none; padding-left: 0; }
       /* 칸이 접히면 머리글 줄이 오히려 헷갈립니다 */
       .r.cmp.hdr { display: none; }
       .field { grid-template-columns: 1fr 130px 44px; }
@@ -1329,12 +1360,17 @@
       /* ---- 한 표로: 택배와 직거래를 나란히 ---- */
       const s = section('팔면 얼마 받나',
         '택배: 수수료 8%+택배비 1만은 내 부담, 상대는 보낸 만큼 받음 · 직거래: 6%는 받는 쪽이 떼이고 받은 만큼 쳐줌');
+      s.appendChild(row('sellgrp', [
+        { cls: 'lbl', html: '' },
+        { cls: 'grp parcelc', text: '택배로 팔면' },
+        { cls: 'grp marketc', text: '직거래로 팔면' }
+      ]));
       s.appendChild(row('sell5 dim hdr', [
         { cls: 'lbl', text: '판매량' },
-        { text: '택배 수수료' },
-        { text: '택배 햄구이' },
-        { text: '직거래 상대 수령' },
-        { text: '직거래 햄구이' }
+        { text: '내 수수료' },
+        { text: '받는 햄구이' },
+        { text: '상대 수령' },
+        { text: '받는 햄구이' }
       ]));
       amounts.forEach(function (x) {
         const fee = x * FEE_PARCEL + PARCEL_BASE;
