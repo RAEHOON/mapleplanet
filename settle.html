@@ -331,7 +331,7 @@
     .irow input.name {
       text-align: left;
       font-family: var(--font-ui);
-      font-size: 15px;
+      font-size: 16px; /* 16px 미만이면 iOS가 탭할 때 화면을 강제 확대한다 */
     }
 
     .row-tools { display: flex; gap: 8px; margin-top: 10px; }
@@ -357,7 +357,7 @@
     /* 결과 머리줄 오른쪽의 작은 버튼 (결과 복사 · 입력 지우기) */
     .h2-tools { margin-left: auto; display: flex; gap: 7px; }
     .h2-tools .btn {
-      min-height: 30px;
+      min-height: 44px; /* 손가락 터치 최소 크기 — 마우스 환경은 아래 920px 블록에서 낮춘다 */
       padding: 3px 12px;
       font-size: 13px;
       letter-spacing: 0;
@@ -487,6 +487,7 @@
       input[type="text"] { min-height: 36px; font-size: 17px; padding: 5px 10px; }
       .btn { min-height: 38px; padding: 6px 16px; }
       .cut, .del { min-height: 38px; }
+      .h2-tools .btn { min-height: 30px; padding: 3px 12px; }
     }
 
     /* ============================================================
